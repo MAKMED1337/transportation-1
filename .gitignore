@@ -1,0 +1,11 @@
+build/
+compile_commands.json
+data/
+reports/
+*.graph
+*.stats.json
+*.csv
+
+*_handout.pdf
+handout*.pdf
+handouts/

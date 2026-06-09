@@ -1,5 +1,7 @@
 #include "algorithms/dijkstra.hpp"
 
+#include "algorithms/heap_node.hpp"
+
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -9,12 +11,6 @@
 
 namespace transport {
 namespace {
-
-struct HeapNode {
-    uint64_t key = 0;
-    uint32_t v = 0;
-    bool operator>(const HeapNode &other) const { return key > other.key; }
-};
 
 constexpr uint64_t kInf = std::numeric_limits<uint64_t>::max();
 

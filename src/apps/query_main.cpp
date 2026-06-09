@@ -4,7 +4,6 @@
 #include "routing/routing.hpp"
 
 #include <cstdint>
-#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <stdexcept>

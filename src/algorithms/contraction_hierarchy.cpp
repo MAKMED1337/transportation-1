@@ -1,5 +1,7 @@
 #include "algorithms/contraction_hierarchy.hpp"
 
+#include "algorithms/heap_node.hpp"
+
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -11,12 +13,6 @@
 
 namespace transport {
 namespace {
-
-struct HeapNode {
-    uint64_t key = 0;
-    uint32_t v = 0;
-    bool operator>(const HeapNode &other) const { return key > other.key; }
-};
 
 struct WorkArc {
     uint32_t to = 0;

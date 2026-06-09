@@ -28,8 +28,8 @@ public:
     [[nodiscard]] uint64_t edge_count() const;
 };
 
-bool save_graph_binary(const Graph &graph, const std::string &path);
-Graph load_graph_binary(const std::string &path);
+[[nodiscard]] bool save_graph_binary(const Graph &graph, const std::string &path);
+[[nodiscard]] Graph load_graph_binary(const std::string &path);
 
 double haversine_meters(const NodeCoord &a, const NodeCoord &b);
 

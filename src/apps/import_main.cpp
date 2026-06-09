@@ -229,8 +229,10 @@ struct NodeHeapCompare {
     bool operator()(const NodeHeapEntry &a, const NodeHeapEntry &b) const { return a.osm_id > b.osm_id; }
 };
 
-std::vector<MappingRecord> merge_nodes_write_mapping(const std::vector<fs::path> &chunks, const fs::path &mapping_path,
-                                                     Graph &graph) {
+// K-way merges the sorted node-id chunks, assigning each distinct osm_id a graph_id (and an
+// empty coord slot to be filled in the second pass). Returns the osm_id -> graph_id mapping
+// sorted by osm_id, ready for binary search.
+std::vector<MappingRecord> build_node_mapping(const std::vector<fs::path> &chunks, Graph &graph) {
     std::vector<std::ifstream> inputs;
     inputs.reserve(chunks.size());
     for (const fs::path &chunk : chunks) {
@@ -248,11 +250,6 @@ std::vector<MappingRecord> merge_nodes_write_mapping(const std::vector<fs::path>
         }
     }
 
-    std::ofstream mapping_out(mapping_path, std::ios::binary);
-    if (!mapping_out) {
-        throw std::runtime_error("failed to write mapping file");
-    }
-
     std::vector<MappingRecord> mapping;
     while (!heap.empty()) {
         const NodeHeapEntry entry = heap.top();
@@ -261,9 +258,7 @@ std::vector<MappingRecord> merge_nodes_write_mapping(const std::vector<fs::path>
         if (mapping.empty() || mapping.back().osm_id != entry.osm_id) {
             const auto graph_id = static_cast<uint32_t>(graph.coords.size());
             graph.coords.push_back(NodeCoord{});
-            const MappingRecord mapping_record{.osm_id = entry.osm_id, .graph_id = graph_id};
-            mapping.push_back(mapping_record);
-            write_record(mapping_out, mapping_record);
+            mapping.push_back(MappingRecord{.osm_id = entry.osm_id, .graph_id = graph_id});
         }
 
         uint64_t next = 0;
@@ -328,6 +323,28 @@ std::optional<Edge> make_edge(uint32_t to, const NodeCoord &from_coord, const No
     return Edge{.to = to, .weight_units = static_cast<uint32_t>(std::ceil(scaled))};
 }
 
+struct ResolvedEdge {
+    uint32_t from = 0;
+    Edge edge;
+};
+
+// Translates a raw segment's osm ids to graph ids and builds its edge, or returns nullopt if
+// either endpoint lacks coordinates or the edge weight overflows. Both CSR passes go through
+// this so the counted and filled edges can never diverge.
+std::optional<ResolvedEdge> resolve_segment(const RawSegment &segment, const std::vector<MappingRecord> &mapping,
+                                            const std::vector<uint8_t> &has_coord, const Graph &graph) {
+    const uint32_t from = lookup_graph_id(mapping, segment.from_osm_id);
+    const uint32_t to = lookup_graph_id(mapping, segment.to_osm_id);
+    if (has_coord[from] == 0 || has_coord[to] == 0) {
+        return std::nullopt;
+    }
+    const std::optional<Edge> edge = make_edge(to, graph.coords[from], graph.coords[to]);
+    if (!edge.has_value()) {
+        return std::nullopt;
+    }
+    return ResolvedEdge{.from = from, .edge = *edge};
+}
+
 void build_csr_edges(const fs::path &raw_segments_path, const std::vector<MappingRecord> &mapping,
                      const std::vector<uint8_t> &has_coord, Graph &graph) {
     graph.offsets.assign(static_cast<size_t>(graph.vertex_count()) + 1, 0);
@@ -340,16 +357,10 @@ void build_csr_edges(const fs::path &raw_segments_path, const std::vector<Mappin
         }
         RawSegment segment;
         while (read_record(in, segment)) {
-            const uint32_t from = lookup_graph_id(mapping, segment.from_osm_id);
-            const uint32_t to = lookup_graph_id(mapping, segment.to_osm_id);
-            if (has_coord[from] == 0 || has_coord[to] == 0) {
-                continue;
+            if (const std::optional<ResolvedEdge> resolved = resolve_segment(segment, mapping, has_coord, graph)) {
+                graph.offsets[static_cast<size_t>(resolved->from) + 1] += 1;
+                ++directed_edges;
             }
-            if (!make_edge(to, graph.coords[from], graph.coords[to]).has_value()) {
-                continue;
-            }
-            graph.offsets[static_cast<size_t>(from) + 1] += 1;
-            ++directed_edges;
         }
     }
 
@@ -367,17 +378,10 @@ void build_csr_edges(const fs::path &raw_segments_path, const std::vector<Mappin
         }
         RawSegment segment;
         while (read_record(in, segment)) {
-            const uint32_t from = lookup_graph_id(mapping, segment.from_osm_id);
-            const uint32_t to = lookup_graph_id(mapping, segment.to_osm_id);
-            if (has_coord[from] == 0 || has_coord[to] == 0) {
-                continue;
+            if (const std::optional<ResolvedEdge> resolved = resolve_segment(segment, mapping, has_coord, graph)) {
+                const uint64_t pos = cursor[resolved->from]++;
+                graph.edges[static_cast<size_t>(pos)] = resolved->edge;
             }
-            const std::optional<Edge> edge = make_edge(to, graph.coords[from], graph.coords[to]);
-            if (!edge.has_value()) {
-                continue;
-            }
-            const uint64_t pos = cursor[from]++;
-            graph.edges[static_cast<size_t>(pos)] = *edge;
         }
     }
 }
@@ -433,7 +437,6 @@ int main(int argc, char **argv) {
     fs::create_directories(temp_dir);
     const fs::path raw_nodes_path = temp_dir / "nodes.raw.bin";
     const fs::path raw_segments_path = temp_dir / "segments.raw.bin";
-    const fs::path mapping_path = temp_dir / "mapping.bin";
 
     WayCollector collector(raw_nodes_path, raw_segments_path);
     {
@@ -446,7 +449,7 @@ int main(int argc, char **argv) {
 
     Graph graph;
     std::vector<fs::path> chunks = sort_node_chunks(raw_nodes_path, temp_dir);
-    std::vector<MappingRecord> mapping = merge_nodes_write_mapping(chunks, mapping_path, graph);
+    std::vector<MappingRecord> mapping = build_node_mapping(chunks, graph);
     std::vector<uint8_t> has_coord(graph.vertex_count(), 0);
     {
         CoordinateCollector coordinate_collector(mapping, graph, has_coord);

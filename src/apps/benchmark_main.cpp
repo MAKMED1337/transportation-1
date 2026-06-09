@@ -164,7 +164,8 @@ int main(int argc, char **argv) {
         const TimedResult a = query_timed(*runner_a, source, target);
         const TimedResult b = query_timed(*runner_b, source, target);
 
-        if (a.path.distance_units == UINT64_MAX || a.path.settled < min_settled || a.path.settled > max_settled) {
+        if (a.path.distance_units == transport::kUnreachable || a.path.settled < min_settled ||
+            a.path.settled > max_settled) {
             continue;
         }
         if (!same_distance(a.path.distance_units, b.path.distance_units)) {

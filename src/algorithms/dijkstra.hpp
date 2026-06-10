@@ -1,9 +1,9 @@
 #pragma once
 
 #include "algorithms/routing_algorithm.hpp"
+#include "algorithms/stamped_vector.hpp"
 #include "graph/graph.hpp"
 
-#include <cstdint>
 #include <string_view>
 
 namespace transport {
@@ -13,10 +13,11 @@ public:
     explicit DijkstraAlgorithm(const Graph &graph);
 
     [[nodiscard]] std::string_view name() const override;
-    [[nodiscard]] PathResult query(uint32_t source, uint32_t target) const override;
+    [[nodiscard]] PathResult query(VertexId source, VertexId target) const override;
 
 private:
     const Graph &graph_;
+    mutable StampedVector<Distance> dist_; // reused query scratch; mutated by the const query()
 };
 
 } // namespace transport

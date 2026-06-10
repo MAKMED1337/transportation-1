@@ -32,7 +32,10 @@ target_compile_options(project_warnings INTERFACE
 
 add_library(transport_core
   src/algorithms/astar.cpp
-  src/algorithms/contraction_hierarchy.cpp
+  src/algorithms/ch/contraction_hierarchy.cpp
+  src/algorithms/ch/node_order.cpp
+  src/algorithms/ch/witness_search.cpp
+  src/algorithms/ch/work_graph.cpp
   src/algorithms/dijkstra.cpp
   src/graph/graph.cpp
   src/algorithms/routing_algorithm_factory.cpp
@@ -58,6 +61,9 @@ endif()
 
 add_executable(write_benchmark_graph src/apps/write_benchmark_graph.cpp)
 target_link_libraries(write_benchmark_graph PRIVATE transport_core project_warnings)
+
+add_executable(ch_measure src/apps/ch_measure_main.cpp)
+target_link_libraries(ch_measure PRIVATE transport_core project_warnings)
 
 if(BUILD_TESTING)
   add_test(NAME query_help COMMAND transport_query --help)

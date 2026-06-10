@@ -3,36 +3,30 @@
 #include "algorithms/heap_node.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <limits>
 #include <queue>
 #include <string_view>
 #include <vector>
 
 namespace transport {
-namespace {
 
-constexpr uint64_t kInf = std::numeric_limits<uint64_t>::max();
-
-} // namespace
-
-AStarAlgorithm::AStarAlgorithm(const Graph &graph) : graph_(graph) {}
+AStarAlgorithm::AStarAlgorithm(const Graph &graph) : graph_(graph), g_(graph.vertex_count(), kUnreachable) {}
 
 std::string_view AStarAlgorithm::name() const { return "astar"; }
 
-PathResult AStarAlgorithm::query(uint32_t source, uint32_t target) const {
-    const uint32_t n = graph_.vertex_count();
-    std::vector<uint64_t> g(n, kInf);
+PathResult AStarAlgorithm::query(VertexId source, VertexId target) const {
+    g_.reset();
     std::priority_queue<HeapNode, std::vector<HeapNode>, std::greater<>> pq;
 
     const NodeCoord &t = graph_.coords[target];
-    auto heuristic = [this, &t](uint32_t v) -> uint64_t {
+    auto heuristic = [this, &t](VertexId v) -> Distance {
         const NodeCoord &c = graph_.coords[v];
         return static_cast<uint64_t>(std::floor(haversine_meters(c, t) * static_cast<double>(kDistanceScale)));
     };
 
-    g[source] = 0;
+    g_.set(source, 0);
     pq.push({heuristic(source), source});
 
     uint32_t settled = 0;
@@ -40,7 +34,7 @@ PathResult AStarAlgorithm::query(uint32_t source, uint32_t target) const {
         const HeapNode top = pq.top();
         pq.pop();
 
-        const uint64_t current_f = g[top.v] + heuristic(top.v);
+        const Distance current_f = g_.get(top.v) + heuristic(top.v);
         if (top.key != current_f) {
             continue;
         }
@@ -54,15 +48,15 @@ PathResult AStarAlgorithm::query(uint32_t source, uint32_t target) const {
         const uint64_t end = graph_.offsets[top.v + 1];
         for (uint64_t i = begin; i < end; ++i) {
             const Edge &e = graph_.edges[static_cast<size_t>(i)];
-            const uint64_t ng = g[top.v] + e.weight_units;
-            if (ng < g[e.to]) {
-                g[e.to] = ng;
+            const Distance ng = g_.get(top.v) + e.weight;
+            if (ng < g_.get(e.to)) {
+                g_.set(e.to, ng);
                 pq.push({ng + heuristic(e.to), e.to});
             }
         }
     }
 
-    return PathResult{g[target], settled};
+    return PathResult{g_.get(target), settled};
 }
 
 } // namespace transport

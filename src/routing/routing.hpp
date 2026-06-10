@@ -1,16 +1,15 @@
 #pragma once
 
-#include "graph/graph.hpp"
+#include "graph/types.hpp"
 
-#include <cstdint>
 #include <limits>
 
 namespace transport {
 
-constexpr uint64_t kUnreachable = std::numeric_limits<uint64_t>::max();
+constexpr Distance kUnreachable = std::numeric_limits<Distance>::max();
 
 struct PathResult {
-    uint64_t distance_units = kUnreachable;
+    Distance distance_units = kUnreachable;
     uint32_t settled = 0;
 };
 

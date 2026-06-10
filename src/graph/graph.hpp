@@ -1,5 +1,7 @@
 #pragma once
 
+#include "graph/types.hpp"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -14,8 +16,8 @@ struct NodeCoord {
 };
 
 struct Edge {
-    uint32_t to = 0;
-    uint32_t weight_units = 0;
+    VertexId to = 0;
+    Weight weight = 0;
 };
 
 class Graph {
@@ -24,7 +26,7 @@ public:
     std::vector<uint64_t> offsets;
     std::vector<Edge> edges;
 
-    [[nodiscard]] uint32_t vertex_count() const;
+    [[nodiscard]] VertexId vertex_count() const;
     [[nodiscard]] uint64_t edge_count() const;
 };
 

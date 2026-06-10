@@ -14,7 +14,7 @@ public:
 
     [[nodiscard]] virtual std::string_view name() const = 0;
     virtual void preprocess() {}
-    [[nodiscard]] virtual PathResult query(uint32_t source, uint32_t target) const = 0;
+    [[nodiscard]] virtual PathResult query(VertexId source, VertexId target) const = 0;
 };
 
 } // namespace transport

@@ -1,4 +1,4 @@
-#include "algorithms/contraction_hierarchy.hpp"
+#include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/routing_algorithm.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
 #include "graph/graph.hpp"

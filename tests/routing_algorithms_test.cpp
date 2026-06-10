@@ -1,5 +1,5 @@
 #include "algorithms/astar.hpp"
-#include "algorithms/contraction_hierarchy.hpp"
+#include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/dijkstra.hpp"
 #include "graph/graph.hpp"
 
@@ -33,7 +33,7 @@ transport::Graph make_invalid_offsets_graph() {
     graph.offsets = {0, 2, 1};
     graph.edges.push_back(transport::Edge{
         .to = 1,
-        .weight_units = 100,
+        .weight = 100,
     });
     return graph;
 }
@@ -44,7 +44,7 @@ transport::Graph make_invalid_edge_destination_graph() {
     graph.offsets = {0, 1, 1};
     graph.edges.push_back(transport::Edge{
         .to = 5,
-        .weight_units = 100,
+        .weight = 100,
     });
     return graph;
 }

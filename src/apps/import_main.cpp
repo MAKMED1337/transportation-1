@@ -320,7 +320,7 @@ std::optional<Edge> make_edge(uint32_t to, const NodeCoord &from_coord, const No
     if (scaled > static_cast<double>(std::numeric_limits<uint32_t>::max())) {
         return std::nullopt;
     }
-    return Edge{.to = to, .weight_units = static_cast<uint32_t>(std::ceil(scaled))};
+    return Edge{.to = to, .weight = static_cast<uint32_t>(std::ceil(scaled))};
 }
 
 struct ResolvedEdge {

@@ -33,7 +33,7 @@ behavior/policy file.
 ## C++ style
 
 - Use C++23 with strict warnings.
-- Favor simple POD-like structs and explicit integer aliases (`uint32_t`, `uint64_t`).
+- Favor simple POD-like structs. Use semantic type aliases (`VertexId`, `Weight`, `Distance` from `src/graph/types.hpp`) in all interfaces; raw `uint32_t`/`uint64_t` are reserved for counts, offsets, and other values that do not carry graph semantics.
 - Keep functions short and focused.
 - Avoid unnecessary inheritance and virtual dispatch.
 - Prefer iterative algorithms and contiguous containers in hot paths.

@@ -55,6 +55,7 @@ add_library(transport_core
   src/algorithms/ch/work_graph.cpp
   src/algorithms/dijkstra.cpp
   src/graph/graph.cpp
+  src/graph/reverse_graph.cpp
   src/algorithms/routing_algorithm_factory.cpp
 )
 target_compile_features(transport_core PUBLIC cxx_std_23)
@@ -87,6 +88,9 @@ target_compile_definitions(bench_harness INTERFACE GIT_COMMIT_HASH="${GIT_COMMIT
 
 add_executable(ch_measure src/apps/ch_measure_main.cpp)
 target_link_libraries(ch_measure PRIVATE bench_harness)
+
+add_executable(transport_measure src/apps/measure_main.cpp)
+target_link_libraries(transport_measure PRIVATE bench_harness)
 
 if(BUILD_TESTING)
   add_test(NAME query_help COMMAND transport_query --help)

@@ -136,7 +136,7 @@ std::pair<ContractionHierarchy, PreprocessStats> build_contraction_hierarchy(con
 // when the popped entry was a stale duplicate (no node was settled).
 bool settle_next(std::priority_queue<HeapNode, std::vector<HeapNode>, std::greater<>> &pq,
                  const std::vector<uint64_t> &offsets, const std::vector<Edge> &edges, StampedVector<Distance> &dist,
-                 const StampedVector<Distance> &opposite_dist, Distance &best) {
+                 const StampedVector<Distance> &opposite_dist, Distance &best, QueryStats &stats, bool is_forward) {
     const HeapNode top = pq.top();
     pq.pop();
     if (top.key != dist.get(top.v)) {
@@ -148,14 +148,23 @@ bool settle_next(std::priority_queue<HeapNode, std::vector<HeapNode>, std::great
         best = std::min(best, top.key + opposite);
     }
 
+    ++stats.settled;
+    if (is_forward) {
+        ++stats.settled_forward;
+    } else {
+        ++stats.settled_backward;
+    }
+
     const size_t begin = offset_index(offsets[top.v]);
     const size_t end = offset_index(offsets[top.v + 1]);
     for (size_t edge_index = begin; edge_index < end; ++edge_index) {
         const Edge &edge = edges[edge_index];
+        ++stats.relaxed_arcs;
         const Distance next = top.key + edge.weight;
         if (next < dist.get(edge.to) && next < best) {
             dist.set(edge.to, next);
             pq.push(HeapNode{next, edge.to});
+            ++stats.heap_pushes;
         }
     }
 
@@ -198,7 +207,7 @@ PathResult ContractionHierarchyAlgorithm::query(VertexId source, VertexId target
     backward_pq.push(HeapNode{0, target});
 
     Distance best = kUnreachable;
-    uint32_t settled = 0;
+    QueryStats stats;
     while (!forward_pq.empty() || !backward_pq.empty()) {
         const Distance forward_min = forward_pq.empty() ? kUnreachable : forward_pq.top().key;
         const Distance backward_min = backward_pq.empty() ? kUnreachable : backward_pq.top().key;
@@ -207,16 +216,15 @@ PathResult ContractionHierarchyAlgorithm::query(VertexId source, VertexId target
         }
 
         if (forward_min <= backward_min) {
-            if (settle_next(forward_pq, ch_.forward_offsets, ch_.forward_edges, forward_dist_, backward_dist_, best)) {
-                ++settled;
-            }
-        } else if (settle_next(backward_pq, ch_.backward_offsets, ch_.backward_edges, backward_dist_, forward_dist_,
-                               best)) {
-            ++settled;
+            settle_next(forward_pq, ch_.forward_offsets, ch_.forward_edges, forward_dist_, backward_dist_, best, stats,
+                        true);
+        } else {
+            settle_next(backward_pq, ch_.backward_offsets, ch_.backward_edges, backward_dist_, forward_dist_, best,
+                        stats, false);
         }
     }
 
-    return PathResult{best, settled};
+    return PathResult{best, stats};
 }
 
 uint64_t ContractionHierarchyAlgorithm::auxiliary_edge_count() const {

@@ -5,14 +5,15 @@
 
 #include <cstdint>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
 
 int main(int argc, char **argv) {
     if (argc == 2 && std::string(argv[1]) == "--help") {
-        std::cout
-            << "usage: transport_query --graph <graph.bin> --source <id> --target <id> --algorithm dijkstra|astar|ch\n";
+        std::cout << "usage: transport_query --graph <graph.bin> --source <id> --target <id> "
+                     "--algorithm <name> [--param key=value ...]\n";
         return 0;
     }
 
@@ -20,22 +21,31 @@ int main(int argc, char **argv) {
     uint32_t source = 0;
     uint32_t target = 0;
     std::string algo = "dijkstra";
+    std::map<std::string, std::string> params;
 
-    for (int i = 1; i + 1 < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
         const std::string key = argv[i];
-        const std::string value = argv[i + 1];
-        if (key == "--graph") {
-            graph_path = value;
-            ++i;
-        } else if (key == "--source") {
-            source = static_cast<uint32_t>(std::stoul(value));
-            ++i;
-        } else if (key == "--target") {
-            target = static_cast<uint32_t>(std::stoul(value));
-            ++i;
-        } else if (key == "--algorithm") {
-            algo = value;
-            ++i;
+        if (i + 1 < argc) {
+            const std::string value = argv[i + 1];
+            if (key == "--graph") {
+                graph_path = value;
+                ++i;
+            } else if (key == "--source") {
+                source = static_cast<uint32_t>(std::stoul(value));
+                ++i;
+            } else if (key == "--target") {
+                target = static_cast<uint32_t>(std::stoul(value));
+                ++i;
+            } else if (key == "--algorithm") {
+                algo = value;
+                ++i;
+            } else if (key == "--param") {
+                const size_t eq = value.find('=');
+                if (eq != std::string::npos) {
+                    params[value.substr(0, eq)] = value.substr(eq + 1);
+                }
+                ++i;
+            }
         }
     }
 
@@ -52,7 +62,7 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<transport::RoutingAlgorithm> algorithm;
     try {
-        algorithm = transport::make_routing_algorithm(algo, graph);
+        algorithm = transport::make_routing_algorithm(algo, graph, params);
         algorithm->preprocess();
     } catch (const std::invalid_argument &err) {
         std::cerr << err.what() << "\n";
@@ -65,6 +75,7 @@ int main(int argc, char **argv) {
     std::cout << "distance_scale=" << transport::kDistanceScale << "\n";
     std::cout << "distance_m="
               << static_cast<double>(result.distance_units) / static_cast<double>(transport::kDistanceScale) << "\n";
-    std::cout << "settled=" << result.settled << "\n";
+    std::cout << "settled=" << result.stats.settled << "\n";
+    std::cout << "relaxed_arcs=" << result.stats.relaxed_arcs << "\n";
     return 0;
 }

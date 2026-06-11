@@ -29,17 +29,18 @@ PathResult AStarAlgorithm::query(VertexId source, VertexId target) const {
     g_.set(source, 0);
     pq.push({heuristic(source), source});
 
-    uint32_t settled = 0;
+    QueryStats stats;
     while (!pq.empty()) {
         const HeapNode top = pq.top();
         pq.pop();
 
+        ++stats.heuristic_evals;
         const Distance current_f = g_.get(top.v) + heuristic(top.v);
         if (top.key != current_f) {
             continue;
         }
 
-        ++settled;
+        ++stats.settled;
         if (top.v == target) {
             break;
         }
@@ -48,15 +49,18 @@ PathResult AStarAlgorithm::query(VertexId source, VertexId target) const {
         const uint64_t end = graph_.offsets[top.v + 1];
         for (uint64_t i = begin; i < end; ++i) {
             const Edge &e = graph_.edges[static_cast<size_t>(i)];
+            ++stats.relaxed_arcs;
             const Distance ng = g_.get(top.v) + e.weight;
             if (ng < g_.get(e.to)) {
                 g_.set(e.to, ng);
+                ++stats.heuristic_evals;
                 pq.push({ng + heuristic(e.to), e.to});
+                ++stats.heap_pushes;
             }
         }
     }
 
-    return PathResult{g_.get(target), settled};
+    return PathResult{g_.get(target), stats};
 }
 
 } // namespace transport

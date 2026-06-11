@@ -4,11 +4,17 @@
 #include "algorithms/stamped_vector.hpp"
 #include "graph/graph.hpp"
 
+#include <chrono>
 #include <cstdint>
 #include <string_view>
 #include <vector>
 
 namespace transport {
+
+struct PreprocessStats {
+    std::chrono::nanoseconds ordering_init_ns{0};
+    uint64_t witness_calls = 0;
+};
 
 class ContractionHierarchy {
 public:
@@ -29,11 +35,13 @@ public:
     void preprocess() override;
     [[nodiscard]] PathResult query(VertexId source, VertexId target) const override;
     [[nodiscard]] uint64_t auxiliary_edge_count() const;
+    [[nodiscard]] PreprocessStats preprocess_stats() const { return last_stats_; }
 
 private:
     const Graph &graph_;
     ContractionHierarchy ch_;
     bool preprocessed_ = false;
+    PreprocessStats last_stats_;
 
     // Reused bidirectional-query scratch (one per search direction); mutated by the const query().
     mutable StampedVector<Distance> forward_dist_;

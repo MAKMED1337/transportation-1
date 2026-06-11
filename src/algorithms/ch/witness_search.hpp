@@ -9,8 +9,8 @@
 
 namespace transport::ch {
 
-using transport::VertexId;
 using transport::Distance;
+using transport::VertexId;
 
 // Sentinel returned by WitnessSearch::run() when no witness path exists within the search bounds.
 constexpr Distance kInf = std::numeric_limits<Distance>::max();
@@ -31,6 +31,8 @@ public:
     [[nodiscard]] Distance run(const WorkGraph &graph, VertexId source, VertexId target, VertexId forbidden,
                                Distance max_distance, uint32_t hop_limit);
 
+    [[nodiscard]] uint64_t calls() const { return calls_; }
+
 private:
     // Per-vertex search state. Distance and hop count are always written together, so they live in one
     // cell and one StampedVector covers both with a single stamp array.
@@ -41,6 +43,7 @@ private:
 
     // Stamped scratch reused across runs so each run resets in O(1) instead of clearing the whole vector.
     StampedVector<Cell> table_;
+    uint64_t calls_ = 0;
 };
 
 } // namespace transport::ch

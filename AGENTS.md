@@ -27,7 +27,7 @@ behavior/policy file.
 - Build system is CMake and targets Linux first.
 - Raw datasets live under `data/raw/`.
 - Generated graph artifacts live under `data/graph/`.
-- Benchmark reports live under `reports/benchmarks/`.
+- Benchmark results live under `results/`.
 - Keep large generated assets out of git.
 
 ## C++ style
@@ -40,7 +40,9 @@ behavior/policy file.
 - Reserve memory where sizes are predictable.
 - Keep includes minimal and deterministic.
 - Use `snake_case` for functions/variables and `PascalCase` for types.
+- Always use braces `{}` for `if`, `for`, `while`, and `do` bodies, even single-statement ones.
 - Prefer `std::string_view` over `const char *` for read-only string values.
+- Prefer early-exit style: `if (cond) return;` / `if (cond) continue;` over nested if-else blocks.
 - Run `clang-format` on modified C++ files before finalizing changes:
   - `rg --files src tests | rg '\\.(cpp|hpp|h)$' | xargs clang-format -i`
 
@@ -68,6 +70,29 @@ behavior/policy file.
   - `cmake --build build -j`
   - `ctest --test-dir build --output-on-failure`
 - For performance checks, run benchmark binaries with explicit CLI flags.
+
+## Benchmark results
+
+Every benchmark run writes a JSON file to `results/`. Rules:
+
+- **Never overwrite** an existing file. Encode enough context in the name to be unique:
+  `<algorithm>_<variant-slug>_<graph>_<YYYYMMDDTHHMMSS>.json` (date + time to the second,
+  e.g. `ch_lazy_europe_20260611T143052.json`).
+  If a collision still occurs (two runs within the same second), append `_2`, `_3`, …
+- **Required top-level fields** (present regardless of algorithm):
+  - `"algorithm"` — short name: `"ch"`, `"dijkstra"`, `"astar"`, …
+  - `"variant"` — human-readable description of the configuration/optimisation,
+    e.g. `"lazy edge-difference ordering, witness hop_limit=5"`.
+  - `"commit"` — git SHA of the code that produced the result.
+  - `"date"` — ISO-8601 date of the run.
+  - `"graph"` — object with `"path"` (binary graph file passed to the benchmark), `"source"` (original input file the graph was built from, e.g. the OSM PBF path), `"vertices"`, `"directed_edges"`.
+- **Timing:** use `_wall_s` / `_cpu_s` pairs for every timed phase so wall vs CPU is always visible.
+- **Memory:** include `"peak_rss_mb"`.
+- **Query stats:** include `"mean_us"`, `"p50_us"`, `"p95_us"`, `"p99_us"`, `"max_us"`, `"count"`, `"seed"` under a `"queries"` object.
+- Algorithm-specific fields (`"auxiliary_edges"`, `"witness_calls"`, `"ordering_init_wall_s"`, …) are welcome — add as needed.
+- Use a `_note` suffix field to document caveats inline, e.g. `"query_alloc_note": "allocates O(V) vectors per call"`.
+- Keep field names and structure human-readable; a reader skimming the raw JSON should understand each value without consulting code.
+- **Before running a benchmark, check that working set fits in physical RAM** (`free -h`). A benchmark bottlenecked by RAM↔swap is not representative and should not be reported. Exception: algorithms whose design explicitly trades RAM for speed (e.g. arc flags with large label tables) may document this trade-off, but should still note the swap pressure in a `_note` field.
 
 ## Agent behavior
 

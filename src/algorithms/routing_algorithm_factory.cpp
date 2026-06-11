@@ -7,6 +7,7 @@
 #include "algorithms/bidirectional_astar.hpp"
 #include "algorithms/bidirectional_dijkstra.hpp"
 #include "algorithms/ch/contraction_hierarchy.hpp"
+#include "algorithms/chase/chase.hpp"
 #include "algorithms/dijkstra.hpp"
 
 #include <memory>
@@ -130,6 +131,13 @@ std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name
         const std::string part = param_str(params, "partition", "inertial");
         const uint32_t threads = param_u32(params, "threads", 1);
         return std::make_unique<ArcFlagsAlgorithm>(graph, regions, part, threads);
+    }
+    if (name == "chase") {
+        const double core_frac = param_double(params, "core_fraction", 0.05);
+        const uint32_t regions = param_u32(params, "regions", 64);
+        const std::string part = param_str(params, "partition", "inertial");
+        const uint32_t threads = param_u32(params, "threads", 1);
+        return std::make_unique<ChaseAlgorithm>(graph, static_cast<float>(core_frac), regions, part, threads);
     }
     throw std::invalid_argument("unsupported algorithm: " + name);
 }

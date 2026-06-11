@@ -1,6 +1,7 @@
 #include "algorithms/arcflags/arc_flags.hpp"
 #include "algorithms/ch/ch_io.hpp"
 #include "algorithms/ch/contraction_hierarchy.hpp"
+#include "algorithms/chase/chase.hpp"
 #include "algorithms/routing_algorithm.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
 #include "apps/bench_utils.hpp"
@@ -82,6 +83,7 @@ int main(int argc, char **argv) {
     bool ch_file_existed = false;
     auto *ch_algo = dynamic_cast<transport::ContractionHierarchyAlgorithm *>(algo.get());
     auto *af_algo = dynamic_cast<transport::ArcFlagsAlgorithm *>(algo.get());
+    auto *chase_algo = dynamic_cast<transport::ChaseAlgorithm *>(algo.get());
     if (!ch_file.empty() && std::filesystem::exists(ch_file)) {
         try {
             auto loaded_ch = transport::ch::load_ch(ch_file);
@@ -93,6 +95,10 @@ int main(int argc, char **argv) {
                 af_algo->inject_ch(std::move(loaded_ch));
                 ch_file_existed = true;
                 std::cout << "CH loaded from " << ch_file << "\n";
+            } else if (chase_algo) {
+                chase_algo->inject_ch(std::move(loaded_ch));
+                ch_file_existed = true;
+                std::cout << "CH loaded from " << ch_file << "\n";
             }
         } catch (const std::exception &e) {
             std::cerr << "warning: failed to load CH from " << ch_file << ": " << e.what() << "\n";
@@ -101,11 +107,36 @@ int main(int argc, char **argv) {
 
     const bool ch_fields = (ch_algo != nullptr);
     const bool af_fields = (af_algo != nullptr);
+    const bool chase_fields = (chase_algo != nullptr);
     const bool ch_loaded = ch_file_existed;
     const std::string ch_path_copy = ch_file;
 
-    auto extra_fields = [&algo, ch_fields, af_fields, ch_loaded, &ch_path_copy]() -> bench::Json {
+    auto extra_fields = [&algo, ch_fields, af_fields, chase_fields, ch_loaded, &ch_path_copy]() -> bench::Json {
         bench::Json j;
+
+        if (chase_fields) {
+            const auto *chase = dynamic_cast<const transport::ChaseAlgorithm *>(algo.get());
+            if (chase) {
+                const auto &s = chase->chase_stats();
+                j["core_fraction"] = s.core_fraction;
+                j["core_vertices"] = s.core_vertices;
+                j["core_arcs_fwd"] = s.core_arcs_fwd;
+                j["core_arcs_bwd"] = s.core_arcs_bwd;
+                j["region_count"] = s.region_count;
+                j["core_boundary_fwd"] = s.core_boundary_fwd;
+                j["core_boundary_bwd"] = s.core_boundary_bwd;
+                j["flags_mb"] = s.flags_mb;
+                j["flags_wall_s"] = s.flags_wall_s;
+                j["flags_cpu_s"] = s.flags_cpu_s;
+                j["total_preprocess_wall_s"] = s.total_wall_s;
+                j["total_preprocess_cpu_s"] = s.total_cpu_s;
+                j["ch_was_injected"] = s.ch_was_injected;
+                if (s.ch_was_injected) {
+                    j["ch_loaded_from_file"] = ch_path_copy;
+                }
+            }
+            return j;
+        }
 
         if (af_fields) {
             const auto *af = dynamic_cast<const transport::ArcFlagsAlgorithm *>(algo.get());

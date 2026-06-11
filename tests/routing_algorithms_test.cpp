@@ -257,6 +257,8 @@ int main() {
           {"hop_stages", "5@0.0"}}},
         // Arc-flags with 4 regions, grid partition (small graphs only)
         {"arcflags", {{"regions", "4"}, {"partition", "grid"}, {"threads", "1"}}},
+        // CHASE with large core_fraction so even tiny graphs have a meaningful core
+        {"chase", {{"core_fraction", "0.5"}, {"regions", "4"}, {"partition", "grid"}, {"threads", "1"}}},
     };
 
     // Line graph: 0→1→2→3

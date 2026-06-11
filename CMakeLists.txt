@@ -60,6 +60,7 @@ add_library(transport_core
   src/algorithms/bidirectional_dijkstra.cpp
   src/algorithms/dijkstra.cpp
   src/algorithms/arcflags/arc_flags.cpp
+  src/algorithms/chase/chase.cpp
   src/algorithms/partition.cpp
   src/algorithms/phast.cpp
   src/graph/graph.cpp

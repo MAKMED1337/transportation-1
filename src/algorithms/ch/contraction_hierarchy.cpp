@@ -7,12 +7,14 @@
 #include "routing/routing.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <queue>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace transport {
@@ -22,9 +24,9 @@ using namespace ch;
 
 size_t offset_index(uint64_t offset) { return static_cast<size_t>(offset); }
 
-// Contracts every vertex in lazy edge-difference order, inserting shortcuts into `work`, and returns
-// the contraction rank of each vertex (the order in which it was contracted).
-std::vector<uint32_t> contract_graph(WorkGraph &work, WitnessSearch &witness) {
+// Contracts every vertex in lazy edge-difference order, inserting shortcuts into `work`. Returns the
+// contraction rank of each vertex together with preprocessing statistics.
+std::pair<std::vector<uint32_t>, PreprocessStats> contract_graph(WorkGraph &work, WitnessSearch &witness) {
     // Lexicographic: priority first, then v for determinism. std::greater<> makes a min-heap.
     struct OrderEntry {
         int64_t priority;
@@ -35,10 +37,13 @@ std::vector<uint32_t> contract_graph(WorkGraph &work, WitnessSearch &witness) {
     const VertexId vertices = work.vertex_count();
     std::vector<uint32_t> rank(vertices, 0);
 
+    // Time the initial scoring pass separately; lazy re-scores are interleaved with contraction.
+    const auto ordering_init_start = std::chrono::steady_clock::now();
     std::priority_queue<OrderEntry, std::vector<OrderEntry>, std::greater<>> pq;
     for (VertexId v = 0; v < vertices; ++v) {
         pq.push(OrderEntry{edge_difference(work, v, witness, kWitnessHopLimit), v});
     }
+    const std::chrono::nanoseconds ordering_init_ns = std::chrono::steady_clock::now() - ordering_init_start;
 
     uint32_t next_rank = 0;
     while (!pq.empty()) {
@@ -63,7 +68,10 @@ std::vector<uint32_t> contract_graph(WorkGraph &work, WitnessSearch &witness) {
         rank[top.v] = next_rank++;
     }
 
-    return rank;
+    PreprocessStats stats;
+    stats.ordering_init_ns = ordering_init_ns;
+    stats.witness_calls = witness.calls();
+    return {rank, stats};
 }
 
 // --- assembling the upward search graph from the contracted work graph ---
@@ -110,14 +118,15 @@ void build_upward_graph(const WorkGraph &work, const std::vector<uint32_t> &rank
     flatten_adjacency(backward, ch.backward_offsets, ch.backward_edges);
 }
 
-ContractionHierarchy build_contraction_hierarchy(const Graph &graph) {
+std::pair<ContractionHierarchy, PreprocessStats> build_contraction_hierarchy(const Graph &graph) {
     WorkGraph work(graph);
     WitnessSearch witness(graph.vertex_count());
 
     ContractionHierarchy ch;
-    ch.rank = contract_graph(work, witness);
+    auto [rank, stats] = contract_graph(work, witness);
+    ch.rank = std::move(rank);
     build_upward_graph(work, ch.rank, ch);
-    return ch;
+    return {std::move(ch), stats};
 }
 
 // --- bidirectional upward query ---
@@ -164,11 +173,12 @@ ContractionHierarchyAlgorithm::ContractionHierarchyAlgorithm(const Graph &graph)
 std::string_view ContractionHierarchyAlgorithm::name() const { return "ch"; }
 
 void ContractionHierarchyAlgorithm::preprocess() {
-    if (preprocessed_) {
-        return;
+    if (!preprocessed_) {
+        auto [ch, stats] = build_contraction_hierarchy(graph_);
+        ch_ = std::move(ch);
+        last_stats_ = stats;
+        preprocessed_ = true;
     }
-    ch_ = build_contraction_hierarchy(graph_);
-    preprocessed_ = true;
 }
 
 PathResult ContractionHierarchyAlgorithm::query(VertexId source, VertexId target) const {

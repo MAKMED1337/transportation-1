@@ -11,8 +11,7 @@
 
 namespace transport {
 
-DijkstraAlgorithm::DijkstraAlgorithm(const Graph &graph)
-    : graph_(graph), dist_(graph.vertex_count(), kUnreachable) {}
+DijkstraAlgorithm::DijkstraAlgorithm(const Graph &graph) : graph_(graph), dist_(graph.vertex_count(), kUnreachable) {}
 
 std::string_view DijkstraAlgorithm::name() const { return "dijkstra"; }
 

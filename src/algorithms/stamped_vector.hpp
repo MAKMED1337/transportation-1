@@ -14,8 +14,7 @@ namespace transport {
 // vertex set (Dijkstra, A*, witness search, bidirectional CH query) to avoid reallocating and refilling a
 // fresh vector on every query. To keep several values per slot, use a struct element type rather than
 // several StampedVectors, so one stamp array (and one reset) covers them all.
-template <typename T>
-class StampedVector {
+template <typename T> class StampedVector {
 public:
     StampedVector(size_t size, T default_value)
         : default_(default_value), values_(size, default_value), stamps_(size, 0) {}

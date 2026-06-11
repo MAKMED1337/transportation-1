@@ -1,0 +1,33 @@
+{
+  "algorithm": "ch",
+  "variant": "lazy edge-difference ordering, witness hop_limit=5",
+  "commit": "90dd988",
+  "date": "2026-06-11T03:20:26",
+  "graph": {
+    "path": "data/graph/dach-260609.graph",
+    "source": "data/raw/dach-260609.osm.pbf",
+    "vertices": 49114692,
+    "directed_edges": 97623765
+  },
+  "load_wall_s": 2.64124,
+  "load_cpu_s": 2.31592,
+  "after_load_peak_rss_mb": 1872,
+  "ordering_init_wall_s": 42.9373,
+  "ordering_note": "initial PQ scoring pass only; lazy re-scores and find_shortcuts are interleaved throughout the full contraction loop",
+  "witness_calls": 418583154,
+  "witness_hop_limit": 5,
+  "witness_note": "counts all WitnessSearch::run() calls from both edge_difference (ordering) and find_shortcuts (contraction); no per-call timing to avoid measurement overhead",
+  "preprocess_wall_s": 2796.8,
+  "preprocess_cpu_s": 2783.2,
+  "auxiliary_edges": 190158989,
+  "after_preprocess_peak_rss_mb": 19447,
+  "queries": {
+    "count": 10000,
+    "seed": 1,
+    "mean_us": 2616.71,
+    "p50_us": 2817.77,
+    "p95_us": 4146.35,
+    "p99_us": 4547.21,
+    "max_us": 5535.4
+  }
+}

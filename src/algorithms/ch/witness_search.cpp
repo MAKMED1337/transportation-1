@@ -11,6 +11,7 @@ WitnessSearch::WitnessSearch(size_t vertices) : table_(vertices, Cell{kInf, 0}) 
 
 Distance WitnessSearch::run(const WorkGraph &graph, VertexId source, VertexId target, VertexId forbidden,
                             Distance max_distance, uint32_t hop_limit) {
+    ++calls_;
     table_.reset();
 
     std::priority_queue<HeapNode, std::vector<HeapNode>, std::greater<>> pq;

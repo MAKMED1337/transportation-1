@@ -3,6 +3,17 @@ project(transport_routing LANGUAGES CXX)
 
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+execute_process(
+    COMMAND git describe --always --dirty
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT GIT_COMMIT_HASH)
+    set(GIT_COMMIT_HASH "unknown")
+endif()
+
 include(FetchContent)
 include(CTest)
 
@@ -64,6 +75,7 @@ target_link_libraries(write_benchmark_graph PRIVATE transport_core project_warni
 
 add_executable(ch_measure src/apps/ch_measure_main.cpp)
 target_link_libraries(ch_measure PRIVATE transport_core project_warnings)
+target_compile_definitions(ch_measure PRIVATE GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
 if(BUILD_TESTING)
   add_test(NAME query_help COMMAND transport_query --help)

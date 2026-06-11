@@ -18,8 +18,7 @@ std::vector<Shortcut> find_shortcuts(const WorkGraph &graph, VertexId vertex, Wi
             }
 
             const Distance shortcut_weight = static_cast<Distance>(left.weight) + right.weight;
-            const Distance witness_distance =
-                witness.run(graph, left.to, right.to, vertex, shortcut_weight, hop_limit);
+            const Distance witness_distance = witness.run(graph, left.to, right.to, vertex, shortcut_weight, hop_limit);
             // No witness within the bounds, and the sum fits in Weight, so a shortcut is needed.
             // Sums are widened to Distance for overflow-safe arithmetic but stored arcs are Weight.
             if (witness_distance > shortcut_weight && shortcut_weight <= std::numeric_limits<Weight>::max()) {

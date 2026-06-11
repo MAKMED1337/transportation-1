@@ -51,6 +51,7 @@ add_library(transport_core
   src/algorithms/alt/alt.cpp
   src/algorithms/alt/landmarks.cpp
   src/algorithms/astar.cpp
+  src/algorithms/ch/ch_io.cpp
   src/algorithms/ch/contraction_hierarchy.cpp
   src/algorithms/ch/node_order.cpp
   src/algorithms/ch/witness_search.cpp

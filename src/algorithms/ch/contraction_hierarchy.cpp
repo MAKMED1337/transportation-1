@@ -11,8 +11,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iomanip>
 #include <queue>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -24,10 +27,41 @@ using namespace ch;
 
 size_t offset_index(uint64_t offset) { return static_cast<size_t>(offset); }
 
-// Contracts every vertex in lazy edge-difference order, inserting shortcuts into `work`. Returns the
-// contraction rank of each vertex together with preprocessing statistics.
-std::pair<std::vector<uint32_t>, PreprocessStats> contract_graph(WorkGraph &work, WitnessSearch &witness) {
-    // Lexicographic: priority first, then v for determinism. std::greater<> makes a min-heap.
+// Returns the hop limit that should be used at `mean_degree` according to `stages`.
+// Stages must be sorted by threshold ascending (as the default OrderParams guarantees).
+uint32_t hop_limit_for_degree(const std::vector<HopStage> &stages, double mean_degree) {
+    uint32_t hl = stages.empty() ? kWitnessHopLimit : stages[0].hop_limit;
+    for (const HopStage &s : stages) {
+        if (mean_degree >= s.mean_degree_threshold) {
+            hl = s.hop_limit;
+        } else {
+            break;
+        }
+    }
+    return hl;
+}
+
+// Build a human-readable variant string for the given OrderParams.
+std::string format_variant(const OrderParams &p) {
+    std::ostringstream oss;
+    oss << "E" << p.w_edge_diff << " D" << p.w_deleted_neighbors << " Q" << p.w_depth << " O" << p.w_original_edges
+        << " S" << p.w_search_space << " V" << p.w_voronoi << ", hops";
+    for (size_t i = 0; i < p.hop_stages.size(); ++i) {
+        if (i > 0) {
+            oss << "/";
+        }
+        oss << p.hop_stages[i].hop_limit;
+        if (p.hop_stages[i].mean_degree_threshold > 0.0) {
+            std::ostringstream tss;
+            tss << std::setprecision(4) << p.hop_stages[i].mean_degree_threshold;
+            oss << "@" << tss.str();
+        }
+    }
+    return oss.str();
+}
+
+std::pair<std::vector<uint32_t>, PreprocessStats> contract_graph(WorkGraph &work, WitnessSearch &witness,
+                                                                 const OrderParams &params) {
     struct OrderEntry {
         int64_t priority;
         VertexId v;
@@ -36,41 +70,105 @@ std::pair<std::vector<uint32_t>, PreprocessStats> contract_graph(WorkGraph &work
 
     const VertexId vertices = work.vertex_count();
     std::vector<uint32_t> rank(vertices, 0);
+    std::vector<uint32_t> depth(vertices, 0);
+    std::vector<uint32_t> deleted_neighbors(vertices, 0);
 
-    // Time the initial scoring pass separately; lazy re-scores are interleaved with contraction.
-    const auto ordering_init_start = std::chrono::steady_clock::now();
-    std::priority_queue<OrderEntry, std::vector<OrderEntry>, std::greater<>> pq;
+    // Track total arcs for mean-degree estimation (initial + shortcuts added).
+    uint64_t arc_count = 0;
     for (VertexId v = 0; v < vertices; ++v) {
-        pq.push(OrderEntry{edge_difference(work, v, witness, kWitnessHopLimit), v});
+        arc_count += work.out[v].size();
     }
+    uint64_t shortcuts_total = 0;
+    uint32_t contracted_count = 0;
+
+    // Initial hop limit from stages.
+    const double init_mean = vertices > 0 ? static_cast<double>(arc_count) / static_cast<double>(vertices) : 0.0;
+    uint32_t current_hop = hop_limit_for_degree(params.hop_stages, init_mean);
+    size_t next_stage_idx = 0;
+    while (next_stage_idx < params.hop_stages.size() &&
+           init_mean >= params.hop_stages[next_stage_idx].mean_degree_threshold) {
+        ++next_stage_idx;
+    }
+
+    std::priority_queue<OrderEntry, std::vector<OrderEntry>, std::greater<>> pq;
+
+    auto rebuild_pq = [&]() {
+        while (!pq.empty()) {
+            pq.pop();
+        }
+        for (VertexId v = 0; v < vertices; ++v) {
+            if (!work.contracted[v]) {
+                pq.push(
+                    OrderEntry{compute_priority(work, v, witness, current_hop, params, depth, deleted_neighbors), v});
+            }
+        }
+    };
+
+    const auto ordering_init_start = std::chrono::steady_clock::now();
+    rebuild_pq();
     const std::chrono::nanoseconds ordering_init_ns = std::chrono::steady_clock::now() - ordering_init_start;
+
+    PreprocessStats stats;
+    stats.ordering_init_ns = ordering_init_ns;
 
     uint32_t next_rank = 0;
     while (!pq.empty()) {
+        // Check whether we should advance to the next hop stage.
+        const uint32_t remaining = vertices - contracted_count;
+        if (remaining > 0 && next_stage_idx < params.hop_stages.size()) {
+            const double mean_degree =
+                static_cast<double>(arc_count + shortcuts_total) / static_cast<double>(remaining);
+            if (mean_degree >= params.hop_stages[next_stage_idx].mean_degree_threshold) {
+                current_hop = params.hop_stages[next_stage_idx].hop_limit;
+                stats.hop_stage_switches.emplace_back(contracted_count, current_hop);
+                ++next_stage_idx;
+                rebuild_pq();
+                continue;
+            }
+        }
+
         const OrderEntry top = pq.top();
         pq.pop();
         if (work.contracted[top.v] != 0) {
-            continue; // stale duplicate left behind by an earlier reinsert
+            continue;
         }
 
-        // Lazy update: the priority may be out of date because neighbours were contracted after it was
-        // queued. Recompute it; if it is no longer the minimum, reinsert instead of contracting now.
-        const OrderEntry refreshed{edge_difference(work, top.v, witness, kWitnessHopLimit), top.v};
+        // Lazy update: recompute priority; if no longer the minimum, reinsert.
+        const OrderEntry refreshed{
+            compute_priority(work, top.v, witness, current_hop, params, depth, deleted_neighbors), top.v};
         if (!pq.empty() && refreshed > pq.top()) {
             pq.push(refreshed);
             continue;
         }
 
-        for (const Shortcut &shortcut : find_shortcuts(work, top.v, witness, kWitnessHopLimit)) {
-            work.add_or_relax(shortcut.from, shortcut.to, shortcut.weight);
+        const std::vector<Shortcut> shortcuts = find_shortcuts(work, top.v, witness, current_hop);
+        for (const Shortcut &sc : shortcuts) {
+            work.add_or_relax(sc.from, sc.to, sc.weight, sc.originals);
         }
+        shortcuts_total += static_cast<uint64_t>(shortcuts.size());
+
+        // Collect unique uncontracted neighbors (both predecessors and successors).
+        std::vector<VertexId> nbrs;
+        for (const WorkArc &a : work.uncontracted_in(top.v)) {
+            nbrs.push_back(a.to);
+        }
+        for (const WorkArc &a : work.uncontracted_out(top.v)) {
+            nbrs.push_back(a.to);
+        }
+        std::sort(nbrs.begin(), nbrs.end());
+        nbrs.erase(std::unique(nbrs.begin(), nbrs.end()), nbrs.end());
+        for (const VertexId nb : nbrs) {
+            ++deleted_neighbors[nb];
+            depth[nb] = std::max(depth[nb], depth[top.v] + 1);
+        }
+
         work.contracted[top.v] = 1;
         rank[top.v] = next_rank++;
+        ++contracted_count;
     }
 
-    PreprocessStats stats;
-    stats.ordering_init_ns = ordering_init_ns;
     stats.witness_calls = witness.calls();
+    stats.shortcuts_added = shortcuts_total;
     return {rank, stats};
 }
 
@@ -118,12 +216,13 @@ void build_upward_graph(const WorkGraph &work, const std::vector<uint32_t> &rank
     flatten_adjacency(backward, ch.backward_offsets, ch.backward_edges);
 }
 
-std::pair<ContractionHierarchy, PreprocessStats> build_contraction_hierarchy(const Graph &graph) {
+std::pair<ContractionHierarchy, PreprocessStats> build_contraction_hierarchy(const Graph &graph,
+                                                                             const OrderParams &params) {
     WorkGraph work(graph);
     WitnessSearch witness(graph.vertex_count());
 
     ContractionHierarchy ch;
-    auto [rank, stats] = contract_graph(work, witness);
+    auto [rank, stats] = contract_graph(work, witness, params);
     ch.rank = std::move(rank);
     build_upward_graph(work, ch.rank, ch);
     return {std::move(ch), stats};
@@ -131,9 +230,6 @@ std::pair<ContractionHierarchy, PreprocessStats> build_contraction_hierarchy(con
 
 // --- bidirectional upward query ---
 
-// Pops and relaxes one node from `pq` in its direction. `dist` is this direction's stamped distances,
-// `opposite_dist` the other direction's; when both meet at a node, `best` is tightened. Returns false
-// when the popped entry was a stale duplicate (no node was settled).
 bool settle_next(std::priority_queue<HeapNode, std::vector<HeapNode>, std::greater<>> &pq,
                  const std::vector<uint64_t> &offsets, const std::vector<Edge> &edges, StampedVector<Distance> &dist,
                  const StampedVector<Distance> &opposite_dist, Distance &best, QueryStats &stats, bool is_forward) {
@@ -175,17 +271,24 @@ bool settle_next(std::priority_queue<HeapNode, std::vector<HeapNode>, std::great
 
 VertexId ContractionHierarchy::vertex_count() const { return static_cast<VertexId>(rank.size()); }
 
-ContractionHierarchyAlgorithm::ContractionHierarchyAlgorithm(const Graph &graph)
-    : graph_(graph), forward_dist_(graph.vertex_count(), kUnreachable),
+ContractionHierarchyAlgorithm::ContractionHierarchyAlgorithm(const Graph &graph, ch::OrderParams params)
+    : graph_(graph), order_params_(std::move(params)), forward_dist_(graph.vertex_count(), kUnreachable),
       backward_dist_(graph.vertex_count(), kUnreachable) {}
 
 std::string_view ContractionHierarchyAlgorithm::name() const { return "ch"; }
+
+std::string ContractionHierarchyAlgorithm::variant() const { return format_variant(order_params_); }
+
+void ContractionHierarchyAlgorithm::inject_ch(ContractionHierarchy ch) {
+    ch_ = std::move(ch);
+    preprocessed_ = true;
+}
 
 void ContractionHierarchyAlgorithm::preprocess() {
     if (preprocessed_) {
         return;
     }
-    auto [ch, stats] = build_contraction_hierarchy(graph_);
+    auto [ch, stats] = build_contraction_hierarchy(graph_, order_params_);
     ch_ = std::move(ch);
     last_stats_ = stats;
     preprocessed_ = true;

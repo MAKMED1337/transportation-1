@@ -1,4 +1,5 @@
 #include "algorithms/astar.hpp"
+#include "algorithms/ch/ch_io.hpp"
 #include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/dijkstra.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
@@ -136,6 +137,41 @@ bool expect_load_failure(const std::filesystem::path &path) {
     return false;
 }
 
+bool check_ch_io_roundtrip(const transport::Graph &graph) {
+    const std::filesystem::path tmp = std::filesystem::temp_directory_path() / "transport_ch_test.ch";
+    transport::ContractionHierarchyAlgorithm algo(graph);
+    algo.preprocess();
+
+    if (!transport::ch::save_ch(algo.get_ch(), tmp.string())) {
+        std::cerr << "ch_io: save failed\n";
+        return false;
+    }
+    transport::ContractionHierarchyAlgorithm loaded(graph);
+    try {
+        loaded.inject_ch(transport::ch::load_ch(tmp.string()));
+    } catch (const std::exception &e) {
+        std::cerr << "ch_io: load failed: " << e.what() << "\n";
+        std::filesystem::remove(tmp);
+        return false;
+    }
+    std::filesystem::remove(tmp);
+
+    const transport::DijkstraAlgorithm ref(graph);
+    const uint32_t V = graph.vertex_count();
+    for (uint32_t s = 0; s < V; ++s) {
+        for (uint32_t t = 0; t < V; ++t) {
+            const transport::Distance expected = ref.query(s, t).distance_units;
+            const transport::Distance got = loaded.query(s, t).distance_units;
+            if (expected != got) {
+                std::cerr << "ch_io roundtrip mismatch s=" << s << " t=" << t << " expected=" << expected
+                          << " got=" << got << "\n";
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool check_malformed_graph_files_fail_fast() {
     const std::filesystem::path dir = std::filesystem::temp_directory_path();
     const std::filesystem::path invalid_offsets = dir / "transport_invalid_offsets.graph";
@@ -166,6 +202,13 @@ int main() {
         {"alt", {{"landmarks", "4"}, {"strategy", "farthest"}, {"active", "2"}, {"seed", "1"}}},
         {"alt_bidi", {{"landmarks", "4"}, {"strategy", "farthest"}, {"active", "2"}, {"seed", "1"}}},
         {"ch", {}},
+        // CH with E-only ordering (baseline) and aggressive hop limit
+        {"ch",
+         {{"w_edge_diff", "1"},
+          {"w_deleted_neighbors", "0"},
+          {"w_depth", "0"},
+          {"w_original_edges", "0"},
+          {"hop_stages", "5@0.0"}}},
     };
 
     // Line graph: 0→1→2→3
@@ -217,6 +260,11 @@ int main() {
     }
 
     if (!check_malformed_graph_files_fail_fast()) {
+        return 1;
+    }
+
+    // CH save/load round-trip (small graph only)
+    if (!check_ch_io_roundtrip(directed_with_witness)) {
         return 1;
     }
 

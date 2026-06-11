@@ -9,6 +9,7 @@
 #include "algorithms/dijkstra.hpp"
 
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -53,10 +54,35 @@ std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name
         return std::make_unique<AStarAlgorithm>(graph);
     }
     if (name == "ch") {
-        if (!params.empty()) {
-            throw std::invalid_argument("ch takes no parameters (use ch_measure for variants)");
+        ch::OrderParams op;
+        const auto get_w = [&](const std::string &k, int32_t def) -> int32_t {
+            const auto it = params.find(k);
+            return it == params.end() ? def : static_cast<int32_t>(std::stoi(it->second));
+        };
+        op.w_edge_diff = get_w("w_edge_diff", 4);
+        op.w_deleted_neighbors = get_w("w_deleted_neighbors", 2);
+        op.w_depth = get_w("w_depth", 1);
+        op.w_original_edges = get_w("w_original_edges", 1);
+        op.w_search_space = get_w("w_search_space", 0);
+        op.w_voronoi = get_w("w_voronoi", 0);
+        // hop_stages format: "2@0.0,3@3.3,5@10.0" (hop_limit@threshold, comma-separated)
+        const std::string hop_str = param_str(params, "hop_stages", "");
+        if (!hop_str.empty()) {
+            op.hop_stages.clear();
+            std::istringstream iss(hop_str);
+            std::string token;
+            while (std::getline(iss, token, ',')) {
+                const size_t at = token.find('@');
+                if (at == std::string::npos) {
+                    op.hop_stages.push_back({0.0, static_cast<uint32_t>(std::stoul(token))});
+                } else {
+                    const uint32_t hl = static_cast<uint32_t>(std::stoul(token.substr(0, at)));
+                    const double thr = std::stod(token.substr(at + 1));
+                    op.hop_stages.push_back({thr, hl});
+                }
+            }
         }
-        return std::make_unique<ContractionHierarchyAlgorithm>(graph);
+        return std::make_unique<ContractionHierarchyAlgorithm>(graph, std::move(op));
     }
     if (name == "bidijkstra") {
         if (!params.empty()) {

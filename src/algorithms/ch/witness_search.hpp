@@ -33,6 +33,11 @@ public:
 
     [[nodiscard]] uint64_t calls() const { return calls_; }
 
+    // Settled-node counter scoped to a simulated contraction. Call reset_sim_settled() before each
+    // vertex simulation; read sim_settled() afterwards for the S (search-space) ordering term.
+    void reset_sim_settled() { sim_settled_ = 0; }
+    [[nodiscard]] uint64_t sim_settled() const { return sim_settled_; }
+
 private:
     // Per-vertex search state. Distance and hop count are always written together, so they live in one
     // cell and one StampedVector covers both with a single stamp array.
@@ -44,6 +49,7 @@ private:
     // Stamped scratch reused across runs so each run resets in O(1) instead of clearing the whole vector.
     StampedVector<Cell> table_;
     uint64_t calls_ = 0;
+    uint64_t sim_settled_ = 0;
 };
 
 } // namespace transport::ch

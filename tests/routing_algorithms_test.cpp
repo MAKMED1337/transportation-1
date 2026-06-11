@@ -47,8 +47,8 @@ transport::Graph make_geo_grid(uint32_t rows, uint32_t cols) {
     for (uint32_t r = 0; r < rows; ++r) {
         for (uint32_t c = 0; c < cols; ++c) {
             const uint32_t v = r * cols + c;
-            g.coords[v] = transport::NodeCoord{lat0 + static_cast<double>(r) * dlat,
-                                               lon0 + static_cast<double>(c) * dlon};
+            g.coords[v] =
+                transport::NodeCoord{lat0 + static_cast<double>(r) * dlat, lon0 + static_cast<double>(c) * dlon};
         }
     }
 
@@ -100,8 +100,8 @@ bool check_all_pairs(const transport::Graph &graph, const std::vector<Config> &c
             for (size_t i = 0; i < algos.size(); ++i) {
                 const transport::Distance got = algos[i]->query(s, t).distance_units;
                 if (ref != got) {
-                    std::cerr << "mismatch s=" << s << " t=" << t << " dijkstra=" << ref
-                              << " " << algos[i]->name() << "=" << got << "\n";
+                    std::cerr << "mismatch s=" << s << " t=" << t << " dijkstra=" << ref << " " << algos[i]->name()
+                              << "=" << got << "\n";
                     ok = false;
                 }
             }
@@ -159,6 +159,12 @@ int main() {
     // Configs to test on every graph fixture
     const std::vector<Config> configs = {
         {"astar", {}},
+        {"bidijkstra", {}},
+        {"bidi_astar", {{"variant", "conservative"}}},
+        {"bidi_astar", {{"variant", "consistent"}}},
+        {"alt", {{"landmarks", "4"}, {"strategy", "random"}, {"active", "2"}, {"seed", "1"}}},
+        {"alt", {{"landmarks", "4"}, {"strategy", "farthest"}, {"active", "2"}, {"seed", "1"}}},
+        {"alt_bidi", {{"landmarks", "4"}, {"strategy", "farthest"}, {"active", "2"}, {"seed", "1"}}},
         {"ch", {}},
     };
 

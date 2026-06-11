@@ -17,6 +17,6 @@ double param_double(const AlgorithmParams &p, const std::string &key, double def
 std::string param_str(const AlgorithmParams &p, const std::string &key, std::string def);
 
 std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name, const Graph &graph,
-                                                          const AlgorithmParams &params = {});
+                                                         const AlgorithmParams &params = {});
 
 } // namespace transport

@@ -117,16 +117,14 @@ inline uint64_t percentile_ns(const std::vector<uint64_t> &sorted_ns, double pct
     return sorted_ns[idx];
 }
 
-template <typename T>
-inline double vec_mean(const std::vector<T> &v) {
+template <typename T> inline double vec_mean(const std::vector<T> &v) {
     if (v.empty()) {
         return 0.0;
     }
     return static_cast<double>(std::accumulate(v.begin(), v.end(), T{})) / static_cast<double>(v.size());
 }
 
-template <typename T>
-inline double vec_p50(std::vector<T> v) {
+template <typename T> inline double vec_p50(std::vector<T> v) {
     if (v.empty()) {
         return 0.0;
     }
@@ -134,8 +132,7 @@ inline double vec_p50(std::vector<T> v) {
     return static_cast<double>(v[v.size() / 2]);
 }
 
-template <typename T>
-inline double vec_p95(std::vector<T> v) {
+template <typename T> inline double vec_p95(std::vector<T> v) {
     if (v.empty()) {
         return 0.0;
     }
@@ -158,8 +155,8 @@ inline LoadedGraph load_graph(const BenchmarkArgs &args) {
 // Appends _2, _3 etc. if a collision would occur (never overwrites).
 inline std::string make_result_path(const std::string &algo_name, const std::string &variant_str,
                                     const std::string &graph_slug) {
-    const std::string base = slugify(algo_name) + "_" + slugify(variant_str) + "_" + slugify(graph_slug) + "_" +
-                             current_datetime_slug();
+    const std::string base =
+        slugify(algo_name) + "_" + slugify(variant_str) + "_" + slugify(graph_slug) + "_" + current_datetime_slug();
     fs::create_directories("results");
     std::string path = "results/" + base + ".json";
     if (!fs::exists(path)) {
@@ -268,8 +265,7 @@ inline bool run_benchmark(const BenchmarkArgs &args, const LoadedGraph &loaded, 
         qstats["table_lookups_mean"] = vec_mean(tlookup_vec);
     }
     if (fallback_count > 0) {
-        qstats["fallback_fraction"] =
-            static_cast<double>(fallback_count) / static_cast<double>(records.size());
+        qstats["fallback_fraction"] = static_cast<double>(fallback_count) / static_cast<double>(records.size());
     }
 
     // Distance bucket breakdown

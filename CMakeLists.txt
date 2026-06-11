@@ -48,11 +48,15 @@ target_compile_options(project_warnings INTERFACE
 )
 
 add_library(transport_core
+  src/algorithms/alt/alt.cpp
+  src/algorithms/alt/landmarks.cpp
   src/algorithms/astar.cpp
   src/algorithms/ch/contraction_hierarchy.cpp
   src/algorithms/ch/node_order.cpp
   src/algorithms/ch/witness_search.cpp
   src/algorithms/ch/work_graph.cpp
+  src/algorithms/bidirectional_astar.cpp
+  src/algorithms/bidirectional_dijkstra.cpp
   src/algorithms/dijkstra.cpp
   src/graph/graph.cpp
   src/graph/reverse_graph.cpp

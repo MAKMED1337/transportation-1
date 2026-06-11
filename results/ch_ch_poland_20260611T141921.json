@@ -1,0 +1,74 @@
+{
+  "algorithm": "ch",
+  "variant": "ch",
+  "commit": "a75822d",
+  "date": "2026-06-11T14:38:11",
+  "graph": {
+    "path": "data/graph/poland-driving.graph",
+    "source": "data/raw/poland-latest.osm.pbf",
+    "vertices": 17023522,
+    "directed_edges": 33605255
+  },
+  "load_wall_s": 1.204343258,
+  "load_cpu_s": 1.201693,
+  "after_load_peak_rss_mb": 649,
+  "preprocess_wall_s": 979.941074106,
+  "preprocess_cpu_s": 977.30669,
+  "after_preprocess_peak_rss_mb": 6693,
+  "ordering_init_wall_s": 33.511595856,
+  "ordering_note": "initial PQ scoring pass only; lazy re-scores and find_shortcuts are interleaved throughout the full contraction loop",
+  "witness_calls": 137048095,
+  "witness_hop_limit": 5,
+  "witness_note": "counts all WitnessSearch::run() calls from both edge_difference (ordering) and find_shortcuts (contraction); no per-call timing to avoid measurement overhead",
+  "auxiliary_edges": 64402705,
+  "queries": {
+    "count": 10000,
+    "seed": 1,
+    "mean_us": 3249.3664492000003,
+    "p50_us": 3440.188,
+    "p95_us": 5301.114,
+    "p99_us": 5892.234,
+    "max_us": 8476.238
+  },
+  "query_stats": {
+    "settled_mean": 2845.335,
+    "settled_p50": 3025.0,
+    "settled_p95": 4588.0,
+    "relaxed_arcs_mean": 77058.1655,
+    "heap_pushes_mean": 5218.0643,
+    "settled_forward_mean": 1411.8395,
+    "settled_backward_mean": 1433.4955
+  },
+  "queries_by_distance": [
+    {
+      "bucket": "[0,10)km",
+      "count": 19,
+      "mean_us": 136.57626315789474,
+      "p50_us": 137.056
+    },
+    {
+      "bucket": "[10,50)km",
+      "count": 271,
+      "mean_us": 448.2256420664206,
+      "p50_us": 428.908
+    },
+    {
+      "bucket": "[50,200)km",
+      "count": 2717,
+      "mean_us": 1727.2340938535149,
+      "p50_us": 1668.836
+    },
+    {
+      "bucket": "[200,inf)km",
+      "count": 6993,
+      "mean_us": 3957.772824395824,
+      "p50_us": 4002.129
+    }
+  ],
+  "queries_by_distance_note": "buckets by straight-line haversine(s,t) as a cheap Dijkstra-rank proxy",
+  "validation": {
+    "reference": "dijkstra",
+    "count": 50,
+    "mismatches": 0
+  }
+}

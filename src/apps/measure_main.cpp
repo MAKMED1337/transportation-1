@@ -1,3 +1,4 @@
+#include "algorithms/arcflags/arc_flags.hpp"
 #include "algorithms/ch/ch_io.hpp"
 #include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/routing_algorithm.hpp"
@@ -80,24 +81,57 @@ int main(int argc, char **argv) {
 
     bool ch_file_existed = false;
     auto *ch_algo = dynamic_cast<transport::ContractionHierarchyAlgorithm *>(algo.get());
-    if (ch_algo && !ch_file.empty()) {
-        if (std::filesystem::exists(ch_file)) {
-            try {
-                ch_algo->inject_ch(transport::ch::load_ch(ch_file));
+    auto *af_algo = dynamic_cast<transport::ArcFlagsAlgorithm *>(algo.get());
+    if (!ch_file.empty() && std::filesystem::exists(ch_file)) {
+        try {
+            auto loaded_ch = transport::ch::load_ch(ch_file);
+            if (ch_algo) {
+                ch_algo->inject_ch(std::move(loaded_ch));
                 ch_file_existed = true;
                 std::cout << "CH loaded from " << ch_file << "\n";
-            } catch (const std::exception &e) {
-                std::cerr << "warning: failed to load CH from " << ch_file << ": " << e.what() << "\n";
+            } else if (af_algo) {
+                af_algo->inject_ch(std::move(loaded_ch));
+                ch_file_existed = true;
+                std::cout << "CH loaded from " << ch_file << "\n";
             }
+        } catch (const std::exception &e) {
+            std::cerr << "warning: failed to load CH from " << ch_file << ": " << e.what() << "\n";
         }
     }
 
     const bool ch_fields = (ch_algo != nullptr);
+    const bool af_fields = (af_algo != nullptr);
     const bool ch_loaded = ch_file_existed;
     const std::string ch_path_copy = ch_file;
 
-    auto extra_fields = [&algo, ch_fields, ch_loaded, &ch_path_copy]() -> bench::Json {
+    auto extra_fields = [&algo, ch_fields, af_fields, ch_loaded, &ch_path_copy]() -> bench::Json {
         bench::Json j;
+
+        if (af_fields) {
+            const auto *af = dynamic_cast<const transport::ArcFlagsAlgorithm *>(algo.get());
+            if (af) {
+                const auto &s = af->arcflags_stats();
+                j["region_count"] = s.region_count;
+                j["boundary_vertices"] = s.boundary_vertices;
+                j["trees_computed"] = s.trees_computed;
+                j["flags_mb"] = s.flags_mb;
+                j["flag_density"] = s.flag_density;
+                j["partition_wall_s"] = s.partition_wall_s;
+                j["phast_wall_s"] = s.phast_wall_s;
+                j["phast_cpu_s"] = s.phast_cpu_s;
+                j["total_preprocess_wall_s"] = s.total_wall_s;
+                j["total_preprocess_cpu_s"] = s.total_cpu_s;
+                j["ch_was_injected"] = s.ch_was_injected;
+                if (!s.preprocess_note.empty()) {
+                    j["preprocess_note"] = s.preprocess_note;
+                }
+                if (s.ch_was_injected) {
+                    j["ch_loaded_from_file"] = ch_path_copy;
+                }
+            }
+            return j;
+        }
+
         if (!ch_fields) {
             return j;
         }

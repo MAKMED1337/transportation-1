@@ -2,6 +2,7 @@
 
 #include "algorithms/alt/alt.hpp"
 #include "algorithms/alt/landmarks.hpp"
+#include "algorithms/arcflags/arc_flags.hpp"
 #include "algorithms/astar.hpp"
 #include "algorithms/bidirectional_astar.hpp"
 #include "algorithms/bidirectional_dijkstra.hpp"
@@ -123,6 +124,12 @@ std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name
             return std::make_unique<AltAlgorithm>(graph, k, strategy, active, seed);
         }
         return std::make_unique<BidirectionalAltAlgorithm>(graph, k, strategy, active, seed);
+    }
+    if (name == "arcflags") {
+        const uint32_t regions = param_u32(params, "regions", 32);
+        const std::string part = param_str(params, "partition", "inertial");
+        const uint32_t threads = param_u32(params, "threads", 1);
+        return std::make_unique<ArcFlagsAlgorithm>(graph, regions, part, threads);
     }
     throw std::invalid_argument("unsupported algorithm: " + name);
 }

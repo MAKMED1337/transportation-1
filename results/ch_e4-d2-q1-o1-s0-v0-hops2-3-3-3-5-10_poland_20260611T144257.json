@@ -1,0 +1,106 @@
+{
+  "algorithm": "ch",
+  "variant": "E4 D2 Q1 O1 S0 V0, hops2/3@3.3/5@10",
+  "commit": "b2636d6",
+  "date": "2026-06-11T14:51:42",
+  "graph": {
+    "path": "data/graph/poland-driving.graph",
+    "source": "data/raw/poland-latest.osm.pbf",
+    "vertices": 17023522,
+    "directed_edges": 33605255
+  },
+  "load_wall_s": 1.209167807,
+  "load_cpu_s": 1.20578,
+  "after_load_peak_rss_mb": 649,
+  "preprocess_wall_s": 396.260936326,
+  "preprocess_cpu_s": 395.110973,
+  "after_preprocess_peak_rss_mb": 6938,
+  "order_weights": {
+    "w_edge_diff": 4,
+    "w_deleted_neighbors": 2,
+    "w_depth": 1,
+    "w_original_edges": 1,
+    "w_search_space": 0,
+    "w_voronoi": 0
+  },
+  "hop_stages": [
+    {
+      "threshold": 0.0,
+      "hop_limit": 2
+    },
+    {
+      "threshold": 3.3,
+      "hop_limit": 3
+    },
+    {
+      "threshold": 10.0,
+      "hop_limit": 5
+    }
+  ],
+  "hop_stage_switches": [
+    {
+      "contracted_at": 4782630,
+      "new_hop_limit": 3
+    },
+    {
+      "contracted_at": 11937818,
+      "new_hop_limit": 5
+    }
+  ],
+  "ordering_init_wall_s": 25.485088995,
+  "ordering_note": "initial PQ scoring pass only; lazy re-scores interleaved throughout contraction",
+  "shortcuts_added": 26451987,
+  "witness_calls": 174061780,
+  "witness_note": "counts all WitnessSearch::run() calls from both compute_priority (ordering) and find_shortcuts (contraction); no per-call timing to avoid measurement overhead",
+  "auxiliary_edges": 60051316,
+  "queries": {
+    "count": 10000,
+    "seed": 1,
+    "mean_us": 952.0196162999999,
+    "p50_us": 989.7,
+    "p95_us": 1504.39,
+    "p99_us": 1707.089,
+    "max_us": 2811.37
+  },
+  "query_stats": {
+    "settled_mean": 1335.0728,
+    "settled_p50": 1454.0,
+    "settled_p95": 2006.0,
+    "relaxed_arcs_mean": 24675.7152,
+    "heap_pushes_mean": 2250.322,
+    "settled_forward_mean": 663.633,
+    "settled_backward_mean": 671.4398
+  },
+  "queries_by_distance": [
+    {
+      "bucket": "[0,10)km",
+      "count": 19,
+      "mean_us": 83.11721052631579,
+      "p50_us": 81.515
+    },
+    {
+      "bucket": "[10,50)km",
+      "count": 271,
+      "mean_us": 209.5189926199262,
+      "p50_us": 200.285
+    },
+    {
+      "bucket": "[50,200)km",
+      "count": 2717,
+      "mean_us": 615.503968347442,
+      "p50_us": 590.652
+    },
+    {
+      "bucket": "[200,inf)km",
+      "count": 6993,
+      "mean_us": 1113.901473902474,
+      "p50_us": 1106.923
+    }
+  ],
+  "queries_by_distance_note": "buckets by straight-line haversine(s,t) as a cheap Dijkstra-rank proxy",
+  "validation": {
+    "reference": "dijkstra",
+    "count": 50,
+    "mismatches": 0
+  }
+}

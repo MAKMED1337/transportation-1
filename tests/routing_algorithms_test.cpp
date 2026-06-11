@@ -2,6 +2,7 @@
 #include "algorithms/ch/ch_io.hpp"
 #include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/dijkstra.hpp"
+#include "algorithms/phast.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
 #include "graph/graph.hpp"
 
@@ -172,6 +173,51 @@ bool check_ch_io_roundtrip(const transport::Graph &graph) {
     return true;
 }
 
+// Verify phast_all_to_one(t)[v] == dijkstra(v,t) and phast_one_to_all(s)[v] == dijkstra(s,v)
+bool check_phast_correctness(const transport::Graph &graph) {
+    transport::ContractionHierarchyAlgorithm ch_algo(graph);
+    ch_algo.preprocess();
+    const transport::ContractionHierarchy &ch = ch_algo.get_ch();
+    const auto inv_rank = transport::build_inv_rank(ch);
+
+    const transport::DijkstraAlgorithm ref(graph);
+    const uint32_t V = graph.vertex_count();
+    std::vector<uint32_t> dist(V);
+    bool ok = true;
+
+    for (uint32_t t = 0; t < V; ++t) {
+        transport::phast_all_to_one(ch, inv_rank, t, dist);
+        for (uint32_t v = 0; v < V; ++v) {
+            const transport::Distance expected = ref.query(v, t).distance_units;
+            const transport::Distance got = (dist[v] == std::numeric_limits<uint32_t>::max())
+                                                ? transport::kUnreachable
+                                                : static_cast<transport::Distance>(dist[v]);
+            if (expected != got) {
+                std::cerr << "phast_all_to_one mismatch v=" << v << " t=" << t << " expected=" << expected
+                          << " got=" << got << "\n";
+                ok = false;
+            }
+        }
+    }
+
+    for (uint32_t s = 0; s < V; ++s) {
+        transport::phast_one_to_all(ch, inv_rank, s, dist);
+        for (uint32_t v = 0; v < V; ++v) {
+            const transport::Distance expected = ref.query(s, v).distance_units;
+            const transport::Distance got = (dist[v] == std::numeric_limits<uint32_t>::max())
+                                                ? transport::kUnreachable
+                                                : static_cast<transport::Distance>(dist[v]);
+            if (expected != got) {
+                std::cerr << "phast_one_to_all mismatch s=" << s << " v=" << v << " expected=" << expected
+                          << " got=" << got << "\n";
+                ok = false;
+            }
+        }
+    }
+
+    return ok;
+}
+
 bool check_malformed_graph_files_fail_fast() {
     const std::filesystem::path dir = std::filesystem::temp_directory_path();
     const std::filesystem::path invalid_offsets = dir / "transport_invalid_offsets.graph";
@@ -209,6 +255,8 @@ int main() {
           {"w_depth", "0"},
           {"w_original_edges", "0"},
           {"hop_stages", "5@0.0"}}},
+        // Arc-flags with 4 regions, grid partition (small graphs only)
+        {"arcflags", {{"regions", "4"}, {"partition", "grid"}, {"threads", "1"}}},
     };
 
     // Line graph: 0→1→2→3
@@ -265,6 +313,16 @@ int main() {
 
     // CH save/load round-trip (small graph only)
     if (!check_ch_io_roundtrip(directed_with_witness)) {
+        return 1;
+    }
+
+    // PHAST correctness: all-to-one and one-to-all must match Dijkstra for every (s,t)
+    if (!check_phast_correctness(directed_with_witness)) {
+        std::cerr << "PHAST correctness check failed on directed_with_witness\n";
+        return 1;
+    }
+    if (!check_phast_correctness(geo_grid)) {
+        std::cerr << "PHAST correctness check failed on geo_grid\n";
         return 1;
     }
 

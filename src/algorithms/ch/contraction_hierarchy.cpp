@@ -173,12 +173,13 @@ ContractionHierarchyAlgorithm::ContractionHierarchyAlgorithm(const Graph &graph)
 std::string_view ContractionHierarchyAlgorithm::name() const { return "ch"; }
 
 void ContractionHierarchyAlgorithm::preprocess() {
-    if (!preprocessed_) {
-        auto [ch, stats] = build_contraction_hierarchy(graph_);
-        ch_ = std::move(ch);
-        last_stats_ = stats;
-        preprocessed_ = true;
+    if (preprocessed_) {
+        return;
     }
+    auto [ch, stats] = build_contraction_hierarchy(graph_);
+    ch_ = std::move(ch);
+    last_stats_ = stats;
+    preprocessed_ = true;
 }
 
 PathResult ContractionHierarchyAlgorithm::query(VertexId source, VertexId target) const {

@@ -29,7 +29,13 @@ FetchContent_Declare(
   GIT_TAG v2.22.0
   SOURCE_SUBDIR cmake-no-add-subdirectory
 )
-FetchContent_MakeAvailable(protozero libosmium)
+FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.11.3
+  GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(protozero libosmium nlohmann_json)
 
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -73,9 +79,14 @@ endif()
 add_executable(write_benchmark_graph src/apps/write_benchmark_graph.cpp)
 target_link_libraries(write_benchmark_graph PRIVATE transport_core project_warnings)
 
+# Shared interface for all benchmark binaries: nlohmann/json and the git hash.
+# Note: GIT_COMMIT_HASH is set at configure time; re-run CMake after committing to refresh it.
+add_library(bench_harness INTERFACE)
+target_link_libraries(bench_harness INTERFACE transport_core nlohmann_json::nlohmann_json project_warnings)
+target_compile_definitions(bench_harness INTERFACE GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+
 add_executable(ch_measure src/apps/ch_measure_main.cpp)
-target_link_libraries(ch_measure PRIVATE transport_core project_warnings)
-target_compile_definitions(ch_measure PRIVATE GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+target_link_libraries(ch_measure PRIVATE bench_harness)
 
 if(BUILD_TESTING)
   add_test(NAME query_help COMMAND transport_query --help)

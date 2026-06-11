@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <iostream>
-#include <ostream>
 #include <string>
 
 int main(int argc, char **argv) {
@@ -27,20 +26,22 @@ int main(int argc, char **argv) {
     auto loaded = bench::load_graph(args);
     transport::ContractionHierarchyAlgorithm ch(loaded.graph);
 
-    bench::run_benchmark(
-        args, loaded, "ch", "lazy edge-difference ordering, witness hop_limit=5", GIT_COMMIT_HASH, ch,
-        [&ch](std::ostream &out) {
-            const transport::PreprocessStats stats = ch.preprocess_stats();
-            out << "  \"ordering_init_wall_s\": " << bench::to_seconds(stats.ordering_init_ns) << ",\n";
-            out << "  \"ordering_note\": \"initial PQ scoring pass only; lazy re-scores and find_shortcuts are"
-                   " interleaved throughout the full contraction loop\",\n";
-            out << "  \"witness_calls\": " << stats.witness_calls << ",\n";
-            out << "  \"witness_hop_limit\": 5,\n";
-            out << "  \"witness_note\": \"counts all WitnessSearch::run() calls from both edge_difference"
-                   " (ordering) and find_shortcuts (contraction); no per-call timing to avoid measurement"
-                   " overhead\",\n";
-            out << "  \"auxiliary_edges\": " << ch.auxiliary_edge_count() << ",\n";
-        });
+    bench::run_benchmark(args, loaded, "lazy edge-difference ordering, witness hop_limit=5", GIT_COMMIT_HASH, ch,
+                         [&ch]() -> bench::Json {
+                             const transport::PreprocessStats stats = ch.preprocess_stats();
+                             return {
+                                 {"ordering_init_wall_s", bench::to_seconds(stats.ordering_init_ns)},
+                                 {"ordering_note",
+                                  "initial PQ scoring pass only; lazy re-scores and find_shortcuts are interleaved "
+                                  "throughout the full contraction loop"},
+                                 {"witness_calls", stats.witness_calls},
+                                 {"witness_hop_limit", 5},
+                                 {"witness_note",
+                                  "counts all WitnessSearch::run() calls from both edge_difference (ordering) and "
+                                  "find_shortcuts (contraction); no per-call timing to avoid measurement overhead"},
+                                 {"auxiliary_edges", ch.auxiliary_edge_count()},
+                             };
+                         });
 
     return 0;
 }

@@ -11,7 +11,9 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <numeric>
+#include <ostream>
 #include <random>
 #include <sstream>
 #include <string>
@@ -19,6 +21,8 @@
 #include <vector>
 
 namespace bench {
+
+using Json = nlohmann::ordered_json;
 
 struct BenchmarkArgs {
     std::string graph_path;
@@ -73,23 +77,6 @@ inline std::string current_datetime_iso() {
     return oss.str();
 }
 
-inline std::string json_str(const std::string &s) {
-    std::string out;
-    out.reserve(s.size() + 2);
-    out += '"';
-    for (const char c : s) {
-        if (c == '"') {
-            out += "\\\"";
-        } else if (c == '\\') {
-            out += "\\\\";
-        } else {
-            out += c;
-        }
-    }
-    out += '"';
-    return out;
-}
-
 inline uint64_t percentile_ns(const std::vector<uint64_t> &sorted_ns, double pct) {
     assert(!sorted_ns.empty());
     const size_t idx =
@@ -107,12 +94,14 @@ inline LoadedGraph load_graph(const BenchmarkArgs &args) {
     return LoadedGraph{std::move(graph), wall_ns, cpu_ns, peak_rss_mb()};
 }
 
-// Preprocesses `algo`, runs the query loop, and writes a complete JSON object to stdout.
-// `extra_fields` is called between the preprocess block and the queries block; it should write
-// zero or more JSON fields (each ending with ",\n") for algorithm-specific metadata.
-inline void run_benchmark(const BenchmarkArgs &args, const LoadedGraph &loaded, std::string_view algorithm,
-                          std::string_view variant, std::string_view commit, transport::RoutingAlgorithm &algo,
-                          const std::function<void(std::ostream &)> &extra_fields) {
+// Preprocesses `algo`, runs the query loop, and writes a complete JSON object to `out`.
+// `extra_fields` is called after preprocessing and must return a Json object with no keys
+// overlapping the standard fields; its entries are merged before the "queries" block. Use it
+// for algorithm-specific metadata (e.g. witness calls, auxiliary edge counts) that are only
+// available post-preprocess. Pass {} to omit algorithm-specific fields.
+inline void run_benchmark(const BenchmarkArgs &args, const LoadedGraph &loaded, std::string_view variant,
+                          std::string_view commit, transport::RoutingAlgorithm &algo,
+                          std::function<Json()> extra_fields = {}, std::ostream &out = std::cout) {
     const Stopwatch pp_sw;
     algo.preprocess();
     const std::chrono::nanoseconds pp_wall_ns = pp_sw.wall_elapsed();
@@ -135,37 +124,46 @@ inline void run_benchmark(const BenchmarkArgs &args, const LoadedGraph &loaded, 
     const double mean_us = static_cast<double>(std::accumulate(times.begin(), times.end(), uint64_t{0})) /
                            static_cast<double>(times.size()) / 1000.0;
 
-    auto &out = std::cout;
-    out << "{\n";
-    out << "  \"algorithm\": " << json_str(std::string(algorithm)) << ",\n";
-    out << "  \"variant\": " << json_str(std::string(variant)) << ",\n";
-    out << "  \"commit\": " << json_str(std::string(commit)) << ",\n";
-    out << "  \"date\": \"" << current_datetime_iso() << "\",\n";
-    out << "  \"graph\": {\n";
-    out << "    \"path\": " << json_str(args.graph_path) << ",\n";
+    Json graph_obj;
+    graph_obj["path"] = args.graph_path;
     if (!args.source_path.empty()) {
-        out << "    \"source\": " << json_str(args.source_path) << ",\n";
+        graph_obj["source"] = args.source_path;
     }
-    out << "    \"vertices\": " << loaded.graph.vertex_count() << ",\n";
-    out << "    \"directed_edges\": " << loaded.graph.edge_count() << "\n";
-    out << "  },\n";
-    out << "  \"load_wall_s\": " << to_seconds(loaded.wall_ns) << ",\n";
-    out << "  \"load_cpu_s\": " << to_seconds(loaded.cpu_ns) << ",\n";
-    out << "  \"after_load_peak_rss_mb\": " << loaded.peak_rss_mb << ",\n";
-    out << "  \"preprocess_wall_s\": " << to_seconds(pp_wall_ns) << ",\n";
-    out << "  \"preprocess_cpu_s\": " << to_seconds(pp_cpu_ns) << ",\n";
-    out << "  \"after_preprocess_peak_rss_mb\": " << after_preprocess_rss << ",\n";
-    extra_fields(out);
-    out << "  \"queries\": {\n";
-    out << "    \"count\": " << args.query_count << ",\n";
-    out << "    \"seed\": " << args.seed << ",\n";
-    out << "    \"mean_us\": " << mean_us << ",\n";
-    out << "    \"p50_us\": " << to_microseconds(std::chrono::nanoseconds(percentile_ns(times, 50))) << ",\n";
-    out << "    \"p95_us\": " << to_microseconds(std::chrono::nanoseconds(percentile_ns(times, 95))) << ",\n";
-    out << "    \"p99_us\": " << to_microseconds(std::chrono::nanoseconds(percentile_ns(times, 99))) << ",\n";
-    out << "    \"max_us\": " << to_microseconds(std::chrono::nanoseconds(times.back())) << "\n";
-    out << "  }\n";
-    out << "}\n";
+    graph_obj["vertices"] = loaded.graph.vertex_count();
+    graph_obj["directed_edges"] = loaded.graph.edge_count();
+
+    Json j;
+    j["algorithm"] = algo.name();
+    j["variant"] = variant;
+    j["commit"] = commit;
+    j["date"] = current_datetime_iso();
+    j["graph"] = std::move(graph_obj);
+    j["load_wall_s"] = to_seconds(loaded.wall_ns);
+    j["load_cpu_s"] = to_seconds(loaded.cpu_ns);
+    j["after_load_peak_rss_mb"] = loaded.peak_rss_mb;
+    j["preprocess_wall_s"] = to_seconds(pp_wall_ns);
+    j["preprocess_cpu_s"] = to_seconds(pp_cpu_ns);
+    j["after_preprocess_peak_rss_mb"] = after_preprocess_rss;
+    if (extra_fields) {
+        const Json extra = extra_fields();
+        for (const auto &[key, val] : extra.items()) {
+            assert(!j.contains(key) && "extra_fields key conflicts with a standard benchmark field");
+            assert(key != "queries" && "extra_fields must not use the reserved key \"queries\"");
+            (void)val;
+        }
+        j.update(extra);
+    }
+    j["queries"] = Json{
+        {"count", args.query_count},
+        {"seed", args.seed},
+        {"mean_us", mean_us},
+        {"p50_us", to_microseconds(std::chrono::nanoseconds(percentile_ns(times, 50)))},
+        {"p95_us", to_microseconds(std::chrono::nanoseconds(percentile_ns(times, 95)))},
+        {"p99_us", to_microseconds(std::chrono::nanoseconds(percentile_ns(times, 99)))},
+        {"max_us", to_microseconds(std::chrono::nanoseconds(times.back()))},
+    };
+
+    out << j.dump(2) << "\n";
 }
 
 } // namespace bench

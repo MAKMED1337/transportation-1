@@ -27,7 +27,7 @@ behavior/policy file.
 - Build system is CMake and targets Linux first.
 - Raw datasets live under `data/raw/`.
 - Generated graph artifacts live under `data/graph/`.
-- Benchmark reports live under `reports/benchmarks/`.
+- Benchmark results live under `results/`.
 - Keep large generated assets out of git.
 
 ## C++ style
@@ -42,6 +42,7 @@ behavior/policy file.
 - Use `snake_case` for functions/variables and `PascalCase` for types.
 - Always use braces `{}` for `if`, `for`, `while`, and `do` bodies, even single-statement ones.
 - Prefer `std::string_view` over `const char *` for read-only string values.
+- Prefer early-exit style: `if (cond) return;` / `if (cond) continue;` over nested if-else blocks.
 - Run `clang-format` on modified C++ files before finalizing changes:
   - `rg --files src tests | rg '\\.(cpp|hpp|h)$' | xargs clang-format -i`
 

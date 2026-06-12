@@ -233,12 +233,17 @@ void HubLabelsAlgorithm::build_labels() {
         }
 
         // Incremental memory budget check every 64k vertices.
+        // Peak memory = 2 × label_data (temp vectors + CSR copy coexist during assembly)
+        //             + fixed overhead (temp vector headers, inv_rank, offsets, CH, graph ≈ 3 GB).
         const uint32_t processed = V - rank;
         if ((processed & 0xFFFFu) == 0 && processed > 0) {
             const uint64_t bytes_so_far = (total_fwd_entries + total_bwd_entries) * sizeof(HlEntry);
-            const uint64_t projected = bytes_so_far * labeled_count_ / processed;
-            if (projected > budget_bytes) {
-                throw std::runtime_error("hl: projected label memory " + std::to_string(projected / (1024 * 1024)) +
+            const uint64_t projected_label_bytes = bytes_so_far * labeled_count_ / processed;
+            // fixed: temp vector headers (V×48) + inv_rank (V×4) + scratch (V×8) + offsets (V×16) + CH+graph (~2 GB)
+            const uint64_t fixed_bytes = static_cast<uint64_t>(V) * 76 + 2ULL * 1024 * 1024 * 1024;
+            const uint64_t projected_peak = 2 * projected_label_bytes + fixed_bytes;
+            if (projected_peak > budget_bytes) {
+                throw std::runtime_error("hl: projected peak memory " + std::to_string(projected_peak / (1024 * 1024)) +
                                          " MB exceeds budget " + std::to_string(memory_budget_gb_) +
                                          " GB after processing " + std::to_string(processed) + " of " +
                                          std::to_string(labeled_count_) + " labeled vertices");

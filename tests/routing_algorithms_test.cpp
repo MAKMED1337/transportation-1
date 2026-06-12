@@ -4,6 +4,7 @@
 #include "algorithms/dijkstra.hpp"
 #include "algorithms/phast.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
+#include "algorithms/tnr/tnr.hpp"
 #include "graph/graph.hpp"
 
 #include <cmath>
@@ -259,6 +260,8 @@ int main() {
         {"arcflags", {{"regions", "4"}, {"partition", "grid"}, {"threads", "1"}}},
         // CHASE with large core_fraction so even tiny graphs have a meaningful core
         {"chase", {{"core_fraction", "0.5"}, {"regions", "4"}, {"partition", "grid"}, {"threads", "1"}}},
+        // TNR with transit=4 so even tiny graphs have transit nodes; most pairs will be local → CH fallback
+        {"tnr", {{"transit", "4"}, {"threads", "1"}}},
     };
 
     // Line graph: 0→1→2→3

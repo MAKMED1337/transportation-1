@@ -9,6 +9,7 @@
 #include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/chase/chase.hpp"
 #include "algorithms/dijkstra.hpp"
+#include "algorithms/tnr/tnr.hpp"
 
 #include <memory>
 #include <sstream>
@@ -138,6 +139,11 @@ std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name
         const std::string part = param_str(params, "partition", "inertial");
         const uint32_t threads = param_u32(params, "threads", 1);
         return std::make_unique<ChaseAlgorithm>(graph, static_cast<float>(core_frac), regions, part, threads);
+    }
+    if (name == "tnr") {
+        const uint32_t transit = param_u32(params, "transit", 16384);
+        const uint32_t threads = param_u32(params, "threads", 1);
+        return std::make_unique<TnrAlgorithm>(graph, transit, threads);
     }
     throw std::invalid_argument("unsupported algorithm: " + name);
 }

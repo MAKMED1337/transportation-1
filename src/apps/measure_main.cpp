@@ -4,6 +4,7 @@
 #include "algorithms/chase/chase.hpp"
 #include "algorithms/routing_algorithm.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
+#include "algorithms/tnr/tnr.hpp"
 #include "apps/bench_utils.hpp"
 #include "graph/graph.hpp"
 
@@ -84,6 +85,7 @@ int main(int argc, char **argv) {
     auto *ch_algo = dynamic_cast<transport::ContractionHierarchyAlgorithm *>(algo.get());
     auto *af_algo = dynamic_cast<transport::ArcFlagsAlgorithm *>(algo.get());
     auto *chase_algo = dynamic_cast<transport::ChaseAlgorithm *>(algo.get());
+    auto *tnr_algo = dynamic_cast<transport::TnrAlgorithm *>(algo.get());
     if (!ch_file.empty() && std::filesystem::exists(ch_file)) {
         try {
             auto loaded_ch = transport::ch::load_ch(ch_file);
@@ -99,6 +101,10 @@ int main(int argc, char **argv) {
                 chase_algo->inject_ch(std::move(loaded_ch));
                 ch_file_existed = true;
                 std::cout << "CH loaded from " << ch_file << "\n";
+            } else if (tnr_algo) {
+                tnr_algo->inject_ch(std::move(loaded_ch));
+                ch_file_existed = true;
+                std::cout << "CH loaded from " << ch_file << "\n";
             }
         } catch (const std::exception &e) {
             std::cerr << "warning: failed to load CH from " << ch_file << ": " << e.what() << "\n";
@@ -108,10 +114,12 @@ int main(int argc, char **argv) {
     const bool ch_fields = (ch_algo != nullptr);
     const bool af_fields = (af_algo != nullptr);
     const bool chase_fields = (chase_algo != nullptr);
+    const bool tnr_fields = (tnr_algo != nullptr);
     const bool ch_loaded = ch_file_existed;
     const std::string ch_path_copy = ch_file;
 
-    auto extra_fields = [&algo, ch_fields, af_fields, chase_fields, ch_loaded, &ch_path_copy]() -> bench::Json {
+    auto extra_fields = [&algo, ch_fields, af_fields, chase_fields, tnr_fields, ch_loaded,
+                         &ch_path_copy]() -> bench::Json {
         bench::Json j;
 
         if (chase_fields) {
@@ -128,6 +136,34 @@ int main(int argc, char **argv) {
                 j["flags_mb"] = s.flags_mb;
                 j["flags_wall_s"] = s.flags_wall_s;
                 j["flags_cpu_s"] = s.flags_cpu_s;
+                j["total_preprocess_wall_s"] = s.total_wall_s;
+                j["total_preprocess_cpu_s"] = s.total_cpu_s;
+                j["ch_was_injected"] = s.ch_was_injected;
+                if (s.ch_was_injected) {
+                    j["ch_loaded_from_file"] = ch_path_copy;
+                }
+            }
+            return j;
+        }
+
+        if (tnr_fields) {
+            const auto *tnr = dynamic_cast<const transport::TnrAlgorithm *>(algo.get());
+            if (tnr) {
+                const auto &s = tnr->tnr_stats();
+                j["transit_nodes"] = s.transit_nodes;
+                j["dt_table_mb"] = s.dt_table_mb;
+                j["dt_build_wall_s"] = s.dt_build_wall_s;
+                j["dt_build_cpu_s"] = s.dt_build_cpu_s;
+                j["access_nodes_wall_s"] = s.access_nodes_wall_s;
+                j["access_nodes_cpu_s"] = s.access_nodes_cpu_s;
+                j["avg_access_fwd"] = s.avg_access_fwd;
+                j["avg_access_bwd"] = s.avg_access_bwd;
+                j["max_access_fwd"] = s.max_access_fwd;
+                j["max_access_bwd"] = s.max_access_bwd;
+                j["access_storage_mb"] = s.access_storage_mb;
+                j["voronoi_wall_s"] = s.voronoi_wall_s;
+                j["voronoi_cpu_s"] = s.voronoi_cpu_s;
+                j["locality_filter_mb"] = s.locality_filter_mb;
                 j["total_preprocess_wall_s"] = s.total_wall_s;
                 j["total_preprocess_cpu_s"] = s.total_cpu_s;
                 j["ch_was_injected"] = s.ch_was_injected;

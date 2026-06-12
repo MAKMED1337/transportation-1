@@ -1,0 +1,92 @@
+{
+  "algorithm": "tnr_af",
+  "variant": "transit=16384 threads=8",
+  "commit": "a6ffb0e",
+  "date": "2026-06-12T06:34:47",
+  "graph": {
+    "path": "data/graph/poland-driving.graph",
+    "source": "data/raw/poland-latest.osm.pbf",
+    "vertices": 17023522,
+    "directed_edges": 33605255
+  },
+  "load_wall_s": 0.577502507,
+  "load_cpu_s": 0.576491,
+  "after_load_peak_rss_mb": 649,
+  "preprocess_wall_s": 201.048898768,
+  "preprocess_cpu_s": 303.668418,
+  "after_preprocess_peak_rss_mb": 11905,
+  "transit_nodes": 16384,
+  "dt_table_mb": 1024.0,
+  "dt_build_wall_s": 161.53413305,
+  "dt_build_cpu_s": 160.403146,
+  "access_nodes_wall_s": 22.280812377,
+  "access_nodes_cpu_s": 79.597622,
+  "avg_access_fwd": 6.008941451716043,
+  "avg_access_bwd": 6.124712324511931,
+  "max_access_fwd": 21,
+  "max_access_bwd": 23,
+  "access_storage_mb": 1835.6671752929688,
+  "voronoi_wall_s": 6.086474167,
+  "voronoi_cpu_s": 6.07543,
+  "locality_filter_mb": 658.802001953125,
+  "total_preprocess_wall_s": 200.585526666,
+  "total_preprocess_cpu_s": 303.20787,
+  "ch_was_injected": true,
+  "ch_loaded_from_file": "data/graph/poland.ch",
+  "af_build_wall_s": 0.463361517,
+  "af_build_cpu_s": 0.460545,
+  "af_flags_mb": 32.0,
+  "af_pruned_fraction": 0.013257335725768258,
+  "queries": {
+    "count": 100000,
+    "seed": 1,
+    "mean_us": 3.32060446,
+    "p50_us": 2.981,
+    "p95_us": 5.462,
+    "p99_us": 8.411,
+    "max_us": 235.777
+  },
+  "query_stats": {
+    "settled_mean": 0.10829,
+    "settled_p50": 0.0,
+    "settled_p95": 0.0,
+    "relaxed_arcs_mean": 0.88565,
+    "heap_pushes_mean": 0.16762,
+    "settled_forward_mean": 39.964285714285715,
+    "settled_backward_mean": 37.385714285714286,
+    "table_lookups_mean": 37.80920957960736,
+    "fallback_fraction": 0.0014
+  },
+  "queries_by_distance": [
+    {
+      "bucket": "[0,10)km",
+      "count": 247,
+      "mean_us": 14.412425101214573,
+      "p50_us": 3.729
+    },
+    {
+      "bucket": "[10,50)km",
+      "count": 2886,
+      "mean_us": 4.510797643797644,
+      "p50_us": 3.008
+    },
+    {
+      "bucket": "[50,200)km",
+      "count": 27034,
+      "mean_us": 3.314426352001184,
+      "p50_us": 3.038
+    },
+    {
+      "bucket": "[200,inf)km",
+      "count": 69833,
+      "mean_us": 3.2345769621812037,
+      "p50_us": 2.957
+    }
+  ],
+  "queries_by_distance_note": "buckets by straight-line haversine(s,t) as a cheap Dijkstra-rank proxy",
+  "validation": {
+    "reference": "dijkstra",
+    "count": 50,
+    "mismatches": 0
+  }
+}

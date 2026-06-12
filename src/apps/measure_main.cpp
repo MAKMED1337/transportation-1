@@ -6,6 +6,7 @@
 #include "algorithms/routing_algorithm.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
 #include "algorithms/tnr/tnr.hpp"
+#include "algorithms/tnr/tnr_af.hpp"
 #include "apps/bench_utils.hpp"
 #include "graph/graph.hpp"
 
@@ -87,6 +88,7 @@ int main(int argc, char **argv) {
     auto *af_algo = dynamic_cast<transport::ArcFlagsAlgorithm *>(algo.get());
     auto *chase_algo = dynamic_cast<transport::ChaseAlgorithm *>(algo.get());
     auto *tnr_algo = dynamic_cast<transport::TnrAlgorithm *>(algo.get());
+    auto *tnr_af_algo = dynamic_cast<transport::TnrAfAlgorithm *>(algo.get());
     auto *hl_algo = dynamic_cast<transport::HubLabelsAlgorithm *>(algo.get());
     if (!ch_file.empty() && std::filesystem::exists(ch_file)) {
         try {
@@ -121,11 +123,12 @@ int main(int argc, char **argv) {
     const bool af_fields = (af_algo != nullptr);
     const bool chase_fields = (chase_algo != nullptr);
     const bool tnr_fields = (tnr_algo != nullptr);
+    const bool tnr_af_fields = (tnr_af_algo != nullptr);
     const bool hl_fields = (hl_algo != nullptr);
     const bool ch_loaded = ch_file_existed;
     const std::string ch_path_copy = ch_file;
 
-    auto extra_fields = [&algo, ch_fields, af_fields, chase_fields, tnr_fields, hl_fields, ch_loaded,
+    auto extra_fields = [&algo, ch_fields, af_fields, chase_fields, tnr_fields, tnr_af_fields, hl_fields, ch_loaded,
                          &ch_path_copy]() -> bench::Json {
         bench::Json j;
 
@@ -176,6 +179,16 @@ int main(int argc, char **argv) {
                 j["ch_was_injected"] = s.ch_was_injected;
                 if (s.ch_was_injected) {
                     j["ch_loaded_from_file"] = ch_path_copy;
+                }
+            }
+            if (tnr_af_fields) {
+                const auto *tnr_af = dynamic_cast<const transport::TnrAfAlgorithm *>(algo.get());
+                if (tnr_af) {
+                    const auto &af = tnr_af->tnr_af_stats();
+                    j["af_build_wall_s"] = af.af_build_wall_s;
+                    j["af_build_cpu_s"] = af.af_build_cpu_s;
+                    j["af_flags_mb"] = af.af_flags_mb;
+                    j["af_pruned_fraction"] = af.af_pruned_fraction;
                 }
             }
             return j;

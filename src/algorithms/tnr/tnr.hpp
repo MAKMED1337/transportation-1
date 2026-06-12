@@ -28,7 +28,7 @@ namespace transport {
 // Query:
 //   If sorted-merge intersection of L_f(s) and L_b(t) is non-empty → local → CH fallback.
 //   Else: min over (a∈A_f(s), b∈A_b(t)) of d_a + DT[a][b] + d_b.
-class TnrAlgorithm final : public RoutingAlgorithm {
+class TnrAlgorithm : public RoutingAlgorithm {
 public:
     explicit TnrAlgorithm(const Graph &graph, uint32_t transit = 16384, uint32_t threads = 1);
 
@@ -62,7 +62,7 @@ public:
 
     [[nodiscard]] const TnrStats &tnr_stats() const { return stats_; }
 
-private:
+protected:
     const Graph &graph_;
     uint32_t transit_count_;
     uint32_t threads_;
@@ -107,8 +107,8 @@ private:
     void build_access_nodes();
     void build_locality_filter();
 
-    // Bidirectional CH query for local pairs (fallback)
     [[nodiscard]] Distance ch_query(VertexId source, VertexId target, QueryStats &stats) const;
+    [[nodiscard]] static bool lists_intersect(const uint16_t *a, size_t na, const uint16_t *b, size_t nb);
 };
 
 } // namespace transport

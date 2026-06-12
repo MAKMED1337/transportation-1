@@ -64,6 +64,7 @@ add_library(transport_core
   src/algorithms/partition.cpp
   src/algorithms/phast.cpp
   src/algorithms/tnr/tnr.cpp
+  src/algorithms/tnr/tnr_af.cpp
   src/algorithms/hl/hub_labels.cpp
   src/graph/graph.cpp
   src/graph/reverse_graph.cpp

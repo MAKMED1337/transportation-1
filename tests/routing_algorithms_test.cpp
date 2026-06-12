@@ -263,6 +263,8 @@ int main() {
         {"chase", {{"core_fraction", "0.5"}, {"regions", "4"}, {"partition", "grid"}, {"threads", "1"}}},
         // TNR with transit=4 so even tiny graphs have transit nodes; most pairs will be local → CH fallback
         {"tnr", {{"transit", "4"}, {"threads", "1"}}},
+        // TNR+AF: same transit size, exercises AF pruning path and local CH fallback
+        {"tnr_af", {{"transit", "4"}, {"threads", "1"}}},
         // HL full labels (fraction=1.0): both-labeled fast path for every pair
         {"hl", {{"label_fraction", "1.0"}, {"memory_budget_gb", "4"}}},
         // HL tiered (fraction=0.5): exercises partial-collect and both-unlabeled paths

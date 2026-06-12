@@ -513,7 +513,7 @@ void TnrAlgorithm::build_locality_filter() {
 }
 
 // Sorted-merge intersection check: returns true if the two sorted lists share any element.
-static bool lists_intersect(const uint16_t *a, size_t na, const uint16_t *b, size_t nb) {
+bool TnrAlgorithm::lists_intersect(const uint16_t *a, size_t na, const uint16_t *b, size_t nb) {
     size_t ia = 0, ib = 0;
     while (ia < na && ib < nb) {
         if (a[ia] == b[ib]) {

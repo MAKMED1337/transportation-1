@@ -1,0 +1,78 @@
+{
+  "algorithm": "hl",
+  "variant": "label_fraction=0.1",
+  "commit": "83367e3",
+  "date": "2026-06-12T06:26:57",
+  "graph": {
+    "path": "data/graph/poland-driving.graph",
+    "source": "data/raw/poland-latest.osm.pbf",
+    "vertices": 17023522,
+    "directed_edges": 33605255
+  },
+  "load_wall_s": 0.761849881,
+  "load_cpu_s": 0.674079,
+  "after_load_peak_rss_mb": 649,
+  "preprocess_wall_s": 336.547962719,
+  "preprocess_cpu_s": 335.296285,
+  "after_preprocess_peak_rss_mb": 15652,
+  "label_fraction": 0.10000000149011612,
+  "labeled_vertices": 1702352,
+  "avg_label_size_fwd": 212.01780654059795,
+  "avg_label_size_bwd": 212.16483195014897,
+  "max_label_size_fwd": 354,
+  "max_label_size_bwd": 362,
+  "label_memory_mb": 5509.248069763184,
+  "label_build_wall_s": 336.547954262,
+  "label_build_cpu_s": 335.296281,
+  "prune_drops": 11574675,
+  "ch_was_injected": true,
+  "ch_loaded_from_file": "data/graph/poland.ch",
+  "queries": {
+    "count": 100000,
+    "seed": 1,
+    "mean_us": 33.96430746,
+    "p50_us": 35.114,
+    "p95_us": 48.431,
+    "p99_us": 54.537,
+    "max_us": 233.79
+  },
+  "query_stats": {
+    "settled_mean": 0.0,
+    "settled_p50": 0.0,
+    "settled_p95": 0.0,
+    "relaxed_arcs_mean": 0.0,
+    "heap_pushes_mean": 0.0
+  },
+  "queries_by_distance": [
+    {
+      "bucket": "[0,10)km",
+      "count": 247,
+      "mean_us": 33.706688259109306,
+      "p50_us": 34.344
+    },
+    {
+      "bucket": "[10,50)km",
+      "count": 2886,
+      "mean_us": 33.68559840609841,
+      "p50_us": 34.408
+    },
+    {
+      "bucket": "[50,200)km",
+      "count": 27034,
+      "mean_us": 34.37269527261966,
+      "p50_us": 35.526
+    },
+    {
+      "bucket": "[200,inf)km",
+      "count": 69833,
+      "mean_us": 33.81864037059842,
+      "p50_us": 35.016
+    }
+  ],
+  "queries_by_distance_note": "buckets by straight-line haversine(s,t) as a cheap Dijkstra-rank proxy",
+  "validation": {
+    "reference": "dijkstra",
+    "count": 50,
+    "mismatches": 0
+  }
+}

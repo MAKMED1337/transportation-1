@@ -11,6 +11,7 @@
 #include "algorithms/dijkstra.hpp"
 #include "algorithms/hl/hub_labels.hpp"
 #include "algorithms/tnr/tnr.hpp"
+#include "algorithms/tnr/tnr_af.hpp"
 
 #include <memory>
 #include <sstream>
@@ -145,6 +146,11 @@ std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name
         const uint32_t transit = param_u32(params, "transit", 16384);
         const uint32_t threads = param_u32(params, "threads", 1);
         return std::make_unique<TnrAlgorithm>(graph, transit, threads);
+    }
+    if (name == "tnr_af") {
+        const uint32_t transit = param_u32(params, "transit", 16384);
+        const uint32_t threads = param_u32(params, "threads", 1);
+        return std::make_unique<TnrAfAlgorithm>(graph, transit, threads);
     }
     if (name == "hl") {
         const double frac = param_double(params, "label_fraction", 0.25);

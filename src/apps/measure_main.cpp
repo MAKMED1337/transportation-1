@@ -2,6 +2,7 @@
 #include "algorithms/ch/ch_io.hpp"
 #include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/chase/chase.hpp"
+#include "algorithms/hl/hub_labels.hpp"
 #include "algorithms/routing_algorithm.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
 #include "algorithms/tnr/tnr.hpp"
@@ -86,6 +87,7 @@ int main(int argc, char **argv) {
     auto *af_algo = dynamic_cast<transport::ArcFlagsAlgorithm *>(algo.get());
     auto *chase_algo = dynamic_cast<transport::ChaseAlgorithm *>(algo.get());
     auto *tnr_algo = dynamic_cast<transport::TnrAlgorithm *>(algo.get());
+    auto *hl_algo = dynamic_cast<transport::HubLabelsAlgorithm *>(algo.get());
     if (!ch_file.empty() && std::filesystem::exists(ch_file)) {
         try {
             auto loaded_ch = transport::ch::load_ch(ch_file);
@@ -105,6 +107,10 @@ int main(int argc, char **argv) {
                 tnr_algo->inject_ch(std::move(loaded_ch));
                 ch_file_existed = true;
                 std::cout << "CH loaded from " << ch_file << "\n";
+            } else if (hl_algo) {
+                hl_algo->inject_ch(std::move(loaded_ch));
+                ch_file_existed = true;
+                std::cout << "CH loaded from " << ch_file << "\n";
             }
         } catch (const std::exception &e) {
             std::cerr << "warning: failed to load CH from " << ch_file << ": " << e.what() << "\n";
@@ -115,10 +121,11 @@ int main(int argc, char **argv) {
     const bool af_fields = (af_algo != nullptr);
     const bool chase_fields = (chase_algo != nullptr);
     const bool tnr_fields = (tnr_algo != nullptr);
+    const bool hl_fields = (hl_algo != nullptr);
     const bool ch_loaded = ch_file_existed;
     const std::string ch_path_copy = ch_file;
 
-    auto extra_fields = [&algo, ch_fields, af_fields, chase_fields, tnr_fields, ch_loaded,
+    auto extra_fields = [&algo, ch_fields, af_fields, chase_fields, tnr_fields, hl_fields, ch_loaded,
                          &ch_path_copy]() -> bench::Json {
         bench::Json j;
 
@@ -166,6 +173,28 @@ int main(int argc, char **argv) {
                 j["locality_filter_mb"] = s.locality_filter_mb;
                 j["total_preprocess_wall_s"] = s.total_wall_s;
                 j["total_preprocess_cpu_s"] = s.total_cpu_s;
+                j["ch_was_injected"] = s.ch_was_injected;
+                if (s.ch_was_injected) {
+                    j["ch_loaded_from_file"] = ch_path_copy;
+                }
+            }
+            return j;
+        }
+
+        if (hl_fields) {
+            const auto *hl = dynamic_cast<const transport::HubLabelsAlgorithm *>(algo.get());
+            if (hl) {
+                const auto &s = hl->hl_stats();
+                j["label_fraction"] = s.label_fraction;
+                j["labeled_vertices"] = s.labeled_vertices;
+                j["avg_label_size_fwd"] = s.avg_label_size_fwd;
+                j["avg_label_size_bwd"] = s.avg_label_size_bwd;
+                j["max_label_size_fwd"] = s.max_label_size_fwd;
+                j["max_label_size_bwd"] = s.max_label_size_bwd;
+                j["label_memory_mb"] = s.label_memory_mb;
+                j["label_build_wall_s"] = s.label_build_wall_s;
+                j["label_build_cpu_s"] = s.label_build_cpu_s;
+                j["prune_drops"] = s.prune_drops;
                 j["ch_was_injected"] = s.ch_was_injected;
                 if (s.ch_was_injected) {
                     j["ch_loaded_from_file"] = ch_path_copy;

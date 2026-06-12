@@ -9,6 +9,7 @@
 #include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/chase/chase.hpp"
 #include "algorithms/dijkstra.hpp"
+#include "algorithms/hl/hub_labels.hpp"
 #include "algorithms/tnr/tnr.hpp"
 
 #include <memory>
@@ -144,6 +145,13 @@ std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name
         const uint32_t transit = param_u32(params, "transit", 16384);
         const uint32_t threads = param_u32(params, "threads", 1);
         return std::make_unique<TnrAlgorithm>(graph, transit, threads);
+    }
+    if (name == "hl") {
+        const double frac = param_double(params, "label_fraction", 0.25);
+        const uint32_t budget_gb = param_u32(params, "memory_budget_gb", 18);
+        const uint32_t threads = param_u32(params, "threads", 1);
+        return std::make_unique<HubLabelsAlgorithm>(graph, static_cast<float>(frac), static_cast<uint64_t>(budget_gb),
+                                                    threads);
     }
     throw std::invalid_argument("unsupported algorithm: " + name);
 }

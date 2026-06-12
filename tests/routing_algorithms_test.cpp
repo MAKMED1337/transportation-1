@@ -2,6 +2,7 @@
 #include "algorithms/ch/ch_io.hpp"
 #include "algorithms/ch/contraction_hierarchy.hpp"
 #include "algorithms/dijkstra.hpp"
+#include "algorithms/hl/hub_labels.hpp"
 #include "algorithms/phast.hpp"
 #include "algorithms/routing_algorithm_factory.hpp"
 #include "algorithms/tnr/tnr.hpp"
@@ -262,6 +263,10 @@ int main() {
         {"chase", {{"core_fraction", "0.5"}, {"regions", "4"}, {"partition", "grid"}, {"threads", "1"}}},
         // TNR with transit=4 so even tiny graphs have transit nodes; most pairs will be local → CH fallback
         {"tnr", {{"transit", "4"}, {"threads", "1"}}},
+        // HL full labels (fraction=1.0): both-labeled fast path for every pair
+        {"hl", {{"label_fraction", "1.0"}, {"memory_budget_gb", "4"}}},
+        // HL tiered (fraction=0.5): exercises partial-collect and both-unlabeled paths
+        {"hl", {{"label_fraction", "0.5"}, {"memory_budget_gb", "4"}}},
     };
 
     // Line graph: 0→1→2→3

@@ -11,6 +11,7 @@
 #include <numbers>
 #include <queue>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -262,9 +263,7 @@ LandmarkSet build_landmarks(const Graph &graph, const ReverseAdjacency &reverse,
         sname = "planar";
         break;
     case LandmarkStrategy::Avoid:
-        // Avoid is complex; fall back to farthest for now
-        chosen = select_farthest(graph, k, seed);
-        sname = "avoid(farthest)";
+        throw std::invalid_argument("avoid landmark strategy is not implemented");
         break;
     }
 

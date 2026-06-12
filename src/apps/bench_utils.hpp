@@ -348,6 +348,7 @@ inline bool run_benchmark(const BenchmarkArgs &args, const LoadedGraph &loaded, 
     j["preprocess_wall_s"] = to_seconds(pp_wall_ns);
     j["preprocess_cpu_s"] = to_seconds(pp_cpu_ns);
     j["after_preprocess_peak_rss_mb"] = after_preprocess_rss;
+    j["peak_rss_mb"] = std::max(loaded.peak_rss_mb, after_preprocess_rss);
 
     if (extra_fields) {
         const Json extra = extra_fields();

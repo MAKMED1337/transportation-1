@@ -307,8 +307,20 @@ int main(int argc, char **argv) {
     }
 
     // Save CH after benchmarking if file was requested but didn't exist yet.
-    if (ch_algo && !ch_file.empty() && !ch_file_existed) {
-        if (!transport::ch::save_ch(ch_algo->get_ch(), ch_file)) {
+    const transport::ContractionHierarchy *ch_to_save = nullptr;
+    if (ch_algo) {
+        ch_to_save = &ch_algo->get_ch();
+    } else if (af_algo) {
+        ch_to_save = &af_algo->get_ch();
+    } else if (chase_algo) {
+        ch_to_save = &chase_algo->get_ch();
+    } else if (tnr_algo) {
+        ch_to_save = &tnr_algo->get_ch();
+    } else if (hl_algo) {
+        ch_to_save = &hl_algo->get_ch();
+    }
+    if (ch_to_save && !ch_file.empty() && !ch_file_existed) {
+        if (!transport::ch::save_ch(*ch_to_save, ch_file)) {
             std::cerr << "warning: failed to save CH to " << ch_file << "\n";
         } else {
             std::cout << "CH saved to " << ch_file << "\n";

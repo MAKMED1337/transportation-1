@@ -12,21 +12,27 @@
 
 namespace transport {
 
-// CHASE: CH + Arc-flags on the core subgraph.
+// CHASE: CH + core reachability filter on the core subgraph.
 //
 // Preprocessing:
 //   1. Build CH (or use injected). Define core = top core_fraction of CH ranks.
 //   2. Extract core-forward and core-backward subgraph CSRs from CH.
-//   3. Partition core vertices; compute arc flags on core arcs from core boundary vertices.
+//   3. Partition core vertices; compute per-arc reachability masks from each vertex upward.
 //
 // Query (two phases):
 //   Phase 1: bidirectional upward CH search. Core vertices are "collected" into entry sets
 //            S (forward) and T (backward) when first settled, without relaxing their arcs.
 //   Phase 2: bidirectional search on core subgraph seeded by S and T.
-//            Forward search prunes arcs unless core_fwd_flags & target_mask.
-//            Backward search prunes arcs unless core_bwd_flags & source_mask.
+//            Forward search prunes arc (u→v) if cf_flags[arc] & target_mask == 0,
+//            where target_mask = union of reachability masks of all backward entries.
+//            Backward search prunes arc (u→v) if cb_flags[arc] & source_mask == 0,
+//            where source_mask = union of reachability masks of all forward entries.
 //            Stopping criterion: CH-style (top_f + top_b >= mu from both sides).
 //   Answer: mu (updated during both phases).
+//
+// Note: the per-arc masks store transitive upward reachability (which regions are reachable
+// going upward from the arc head), not true PHAST-equality arc flags. This is a conservative
+// reachability filter rather than an optimal arc-flags implementation.
 class ChaseAlgorithm final : public RoutingAlgorithm {
 public:
     explicit ChaseAlgorithm(const Graph &graph, float core_fraction = 0.05f, uint32_t regions = 64,
@@ -77,14 +83,14 @@ private:
     std::vector<uint64_t> cb_offsets_; // core-backward: upward-in-reverse arcs within core
     std::vector<Edge> cb_edges_;
 
-    // Reachability masks: cf_reach_[v] = bitmask of regions reachable from v going upward via cf.
-    // cb_reach_[v] = bitmask of regions reachable from v going upward via cb.
-    // Computed in descending rank order so each vertex accumulates its neighbours' masks.
+    // Transitive reachability masks computed in descending rank order:
+    //   cf_reach_[v] = bitmask of regions reachable from v going upward via cf arcs.
+    //   cb_reach_[v] = bitmask of regions reachable from v going upward via cb arcs.
     std::vector<uint64_t> cf_reach_;
     std::vector<uint64_t> cb_reach_;
 
-    // Per-arc flags (cf_flags_[k] = cf_reach_[cf_edges_[k].to], similarly for cb).
-    // Stored per-arc for fast flag-check during query without an extra indirection.
+    // Per-arc reachability (cf_flags_[k] = cf_reach_[cf_edges_[k].to], similarly for cb).
+    // Cached per-arc to avoid indirect lookup during the hot query loop.
     std::vector<uint64_t> cf_flags_;
     std::vector<uint64_t> cb_flags_;
 

@@ -56,8 +56,4 @@ struct OrderParams {
                                        const std::vector<uint32_t> &depth,
                                        const std::vector<uint32_t> &deleted_neighbors);
 
-// Pure edge-difference (E only), kept for reference.
-[[nodiscard]] int64_t edge_difference(const WorkGraph &graph, VertexId vertex, WitnessSearch &witness,
-                                      uint32_t hop_limit);
-
 } // namespace transport::ch

@@ -1,6 +1,5 @@
 #include "algorithms/ch/node_order.hpp"
 
-#include <algorithm>
 #include <limits>
 #include <vector>
 
@@ -57,12 +56,6 @@ int64_t compute_priority(const WorkGraph &graph, VertexId vertex, WitnessSearch 
 
     return params.w_edge_diff * E + params.w_deleted_neighbors * D + params.w_depth * Q + params.w_original_edges * O +
            params.w_search_space * S;
-}
-
-int64_t edge_difference(const WorkGraph &graph, VertexId vertex, WitnessSearch &witness, uint32_t hop_limit) {
-    const size_t added = find_shortcuts(graph, vertex, witness, hop_limit).size();
-    const size_t removed = graph.uncontracted_in(vertex).size() + graph.uncontracted_out(vertex).size();
-    return static_cast<int64_t>(added) - static_cast<int64_t>(removed);
 }
 
 } // namespace transport::ch

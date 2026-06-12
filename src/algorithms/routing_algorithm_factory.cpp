@@ -133,6 +133,9 @@ std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name
         const uint32_t regions = param_u32(params, "regions", 32);
         const std::string part = param_str(params, "partition", "inertial");
         const uint32_t threads = param_u32(params, "threads", 1);
+        if (part == "inertial" && (regions == 0 || (regions & (regions - 1)) != 0)) {
+            throw std::invalid_argument("arcflags: inertial partition requires regions to be a power of 2");
+        }
         return std::make_unique<ArcFlagsAlgorithm>(graph, regions, part, threads);
     }
     if (name == "chase") {
@@ -140,6 +143,9 @@ std::unique_ptr<RoutingAlgorithm> make_routing_algorithm(const std::string &name
         const uint32_t regions = param_u32(params, "regions", 64);
         const std::string part = param_str(params, "partition", "inertial");
         const uint32_t threads = param_u32(params, "threads", 1);
+        if (part == "inertial" && (regions == 0 || (regions & (regions - 1)) != 0)) {
+            throw std::invalid_argument("chase: inertial partition requires regions to be a power of 2");
+        }
         return std::make_unique<ChaseAlgorithm>(graph, static_cast<float>(core_frac), regions, part, threads);
     }
     if (name == "tnr") {

@@ -98,9 +98,6 @@ add_library(bench_harness INTERFACE)
 target_link_libraries(bench_harness INTERFACE transport_core nlohmann_json::nlohmann_json project_warnings)
 target_compile_definitions(bench_harness INTERFACE GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
-add_executable(ch_measure src/apps/ch_measure_main.cpp)
-target_link_libraries(ch_measure PRIVATE bench_harness)
-
 add_executable(transport_measure src/apps/measure_main.cpp)
 target_link_libraries(transport_measure PRIVATE bench_harness)
 

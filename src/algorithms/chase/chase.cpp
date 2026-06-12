@@ -193,11 +193,9 @@ void ChaseAlgorithm::compute_core_flags() {
         stats_.core_boundary_bwd = total_cb_bnd;
     }
 
-    // Compute reachability masks in descending rank order.
-    // cf_reach_[v] = bitmask of regions reachable from v going upward via cf arcs.
-    // cb_reach_[v] = bitmask of regions reachable from v going upward via cb arcs.
+    // Compute transitive upward reachability masks in descending rank order.
     // Since cf/cb arcs only go to higher-ranked vertices (already processed), OR-ing
-    // neighbours' masks gives the transitive closure of region reachability.
+    // neighbours' masks gives the transitive closure of upward reachability.
     cf_reach_.assign(V, 0);
     cb_reach_.assign(V, 0);
 
@@ -319,12 +317,11 @@ PathResult ChaseAlgorithm::query(VertexId source, VertexId target) const {
         }
     }
 
-    // Phase 2: bidirectional search on core subgraph with arc flags.
+    // Phase 2: bidirectional search on core subgraph with reachability-filter pruning.
     if (!fwd_entries.empty() && !bwd_entries.empty()) {
-        // target_mask = union of cb-reachable regions from all backward entries.
-        // source_mask = union of cf-reachable regions from all forward entries.
-        // An arc (u→v) in cf is pruned only when no backward-reachable region is
-        // also reachable from v in cf — i.e., the two searches can never meet.
+        // target_mask = union of cb_reach_ masks of all backward entries.
+        // source_mask = union of cf_reach_ masks of all forward entries.
+        // An arc is pruned when its reachability mask does not intersect the opposing mask.
         uint64_t target_mask = 0;
         uint64_t source_mask = 0;
         for (const auto &[v, d] : bwd_entries) {

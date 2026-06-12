@@ -28,6 +28,7 @@ Distance WitnessSearch::run(const WorkGraph &graph, VertexId source, VertexId ta
         if (top.key > max_distance) {
             break;
         }
+        ++sim_settled_;
         if (top.v == target) {
             return top.key;
         }

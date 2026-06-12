@@ -48,13 +48,26 @@ target_compile_options(project_warnings INTERFACE
 )
 
 add_library(transport_core
+  src/algorithms/alt/alt.cpp
+  src/algorithms/alt/landmarks.cpp
   src/algorithms/astar.cpp
+  src/algorithms/ch/ch_io.cpp
   src/algorithms/ch/contraction_hierarchy.cpp
   src/algorithms/ch/node_order.cpp
   src/algorithms/ch/witness_search.cpp
   src/algorithms/ch/work_graph.cpp
+  src/algorithms/bidirectional_astar.cpp
+  src/algorithms/bidirectional_dijkstra.cpp
   src/algorithms/dijkstra.cpp
+  src/algorithms/arcflags/arc_flags.cpp
+  src/algorithms/chase/chase.cpp
+  src/algorithms/partition.cpp
+  src/algorithms/phast.cpp
+  src/algorithms/tnr/tnr.cpp
+  src/algorithms/tnr/tnr_af.cpp
+  src/algorithms/hl/hub_labels.cpp
   src/graph/graph.cpp
+  src/graph/reverse_graph.cpp
   src/algorithms/routing_algorithm_factory.cpp
 )
 target_compile_features(transport_core PUBLIC cxx_std_23)
@@ -85,8 +98,8 @@ add_library(bench_harness INTERFACE)
 target_link_libraries(bench_harness INTERFACE transport_core nlohmann_json::nlohmann_json project_warnings)
 target_compile_definitions(bench_harness INTERFACE GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
-add_executable(ch_measure src/apps/ch_measure_main.cpp)
-target_link_libraries(ch_measure PRIVATE bench_harness)
+add_executable(transport_measure src/apps/measure_main.cpp)
+target_link_libraries(transport_measure PRIVATE bench_harness)
 
 if(BUILD_TESTING)
   add_test(NAME query_help COMMAND transport_query --help)

@@ -66,7 +66,7 @@ void write_benchmark_row(std::ofstream &out, uint32_t query, uint32_t source, ui
         out << "," << result.timed.path.distance_units;
     }
     for (const TimedAlgorithmResult &result : results) {
-        out << "," << result.timed.path.settled;
+        out << "," << result.timed.path.stats.settled;
     }
     for (const TimedAlgorithmResult &result : results) {
         out << "," << result.timed.query_us;
@@ -164,8 +164,8 @@ int main(int argc, char **argv) {
         const TimedResult a = query_timed(*runner_a, source, target);
         const TimedResult b = query_timed(*runner_b, source, target);
 
-        if (a.path.distance_units == transport::kUnreachable || a.path.settled < min_settled ||
-            a.path.settled > max_settled) {
+        if (a.path.distance_units == transport::kUnreachable || a.path.stats.settled < min_settled ||
+            a.path.stats.settled > max_settled) {
             continue;
         }
         if (!same_distance(a.path.distance_units, b.path.distance_units)) {

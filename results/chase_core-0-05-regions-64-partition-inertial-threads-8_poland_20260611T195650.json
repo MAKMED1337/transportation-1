@@ -1,0 +1,83 @@
+{
+  "algorithm": "chase",
+  "variant": "core=0.05 regions=64 partition=inertial threads=8",
+  "commit": "0bb5d53",
+  "date": "2026-06-11T19:57:54",
+  "graph": {
+    "path": "data/graph/poland-driving.graph",
+    "source": "data/raw/poland-latest.osm.pbf",
+    "vertices": 17023522,
+    "directed_edges": 33605255
+  },
+  "load_wall_s": 0.600524272,
+  "load_cpu_s": 0.59926,
+  "after_load_peak_rss_mb": 649,
+  "preprocess_wall_s": 13.822488136,
+  "preprocess_cpu_s": 13.790212,
+  "after_preprocess_peak_rss_mb": 2529,
+  "core_fraction": 0.05000000074505806,
+  "core_vertices": 851176,
+  "core_arcs_fwd": 2397607,
+  "core_arcs_bwd": 2400302,
+  "region_count": 64,
+  "core_boundary_fwd": 18285,
+  "core_boundary_bwd": 18270,
+  "flags_mb": 296.3634719848633,
+  "flags_wall_s": 1.878255494,
+  "flags_cpu_s": 1.873667,
+  "total_preprocess_wall_s": 13.822483072,
+  "total_preprocess_cpu_s": 13.79021,
+  "ch_was_injected": true,
+  "ch_loaded_from_file": "data/graph/poland.ch",
+  "queries": {
+    "count": 10000,
+    "seed": 1,
+    "mean_us": 366.5646116,
+    "p50_us": 388.908,
+    "p95_us": 578.622,
+    "p99_us": 679.546,
+    "max_us": 1076.866
+  },
+  "query_stats": {
+    "settled_mean": 1318.8148,
+    "settled_p50": 1452.0,
+    "settled_p95": 2009.0,
+    "relaxed_arcs_mean": 24293.4705,
+    "heap_pushes_mean": 2215.8124,
+    "settled_forward_mean": 655.8402,
+    "settled_backward_mean": 662.9746,
+    "pruned_by_flag_mean": 4278.533980582524
+  },
+  "queries_by_distance": [
+    {
+      "bucket": "[0,10)km",
+      "count": 19,
+      "mean_us": 33.21878947368421,
+      "p50_us": 32.122
+    },
+    {
+      "bucket": "[10,50)km",
+      "count": 271,
+      "mean_us": 81.32326568265682,
+      "p50_us": 77.529
+    },
+    {
+      "bucket": "[50,200)km",
+      "count": 2717,
+      "mean_us": 233.23587559808612,
+      "p50_us": 224.058
+    },
+    {
+      "bucket": "[200,inf)km",
+      "count": 6993,
+      "mean_us": 430.326680966681,
+      "p50_us": 435.124
+    }
+  ],
+  "queries_by_distance_note": "buckets by straight-line haversine(s,t) as a cheap Dijkstra-rank proxy",
+  "validation": {
+    "reference": "dijkstra",
+    "count": 50,
+    "mismatches": 0
+  }
+}

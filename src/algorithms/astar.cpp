@@ -1,7 +1,5 @@
 #include "algorithms/astar.hpp"
 
-#include "algorithms/heap_node.hpp"
-
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -18,7 +16,14 @@ std::string_view AStarAlgorithm::name() const { return "astar"; }
 
 PathResult AStarAlgorithm::query(VertexId source, VertexId target) const {
     g_.reset();
-    std::priority_queue<HeapNode, std::vector<HeapNode>, std::greater<>> pq;
+
+    struct AStarNode {
+        Distance f;
+        Distance g;
+        VertexId v;
+        bool operator>(const AStarNode &other) const { return f > other.f; }
+    };
+    std::priority_queue<AStarNode, std::vector<AStarNode>, std::greater<>> pq;
 
     const NodeCoord &t = graph_.coords[target];
     auto heuristic = [this, &t](VertexId v) -> Distance {
@@ -26,20 +31,20 @@ PathResult AStarAlgorithm::query(VertexId source, VertexId target) const {
         return static_cast<uint64_t>(std::floor(haversine_meters(c, t) * static_cast<double>(kDistanceScale)));
     };
 
+    QueryStats stats;
     g_.set(source, 0);
-    pq.push({heuristic(source), source});
+    ++stats.heuristic_evals;
+    pq.push({heuristic(source), 0, source});
 
-    uint32_t settled = 0;
     while (!pq.empty()) {
-        const HeapNode top = pq.top();
+        const AStarNode top = pq.top();
         pq.pop();
 
-        const Distance current_f = g_.get(top.v) + heuristic(top.v);
-        if (top.key != current_f) {
+        if (top.g != g_.get(top.v)) {
             continue;
         }
 
-        ++settled;
+        ++stats.settled;
         if (top.v == target) {
             break;
         }
@@ -48,15 +53,18 @@ PathResult AStarAlgorithm::query(VertexId source, VertexId target) const {
         const uint64_t end = graph_.offsets[top.v + 1];
         for (uint64_t i = begin; i < end; ++i) {
             const Edge &e = graph_.edges[static_cast<size_t>(i)];
-            const Distance ng = g_.get(top.v) + e.weight;
+            ++stats.relaxed_arcs;
+            const Distance ng = top.g + e.weight;
             if (ng < g_.get(e.to)) {
                 g_.set(e.to, ng);
-                pq.push({ng + heuristic(e.to), e.to});
+                ++stats.heuristic_evals;
+                pq.push({ng + heuristic(e.to), ng, e.to});
+                ++stats.heap_pushes;
             }
         }
     }
 
-    return PathResult{g_.get(target), settled};
+    return PathResult{g_.get(target), stats};
 }
 
 } // namespace transport

@@ -16,6 +16,7 @@ using transport::Weight;
 struct WorkArc {
     VertexId to = 0;
     Weight weight = 0;
+    uint32_t originals = 1; // number of base-graph edges this arc represents (>1 for shortcuts)
 };
 
 struct WorkGraph {
@@ -28,9 +29,9 @@ struct WorkGraph {
 
     [[nodiscard]] VertexId vertex_count() const { return static_cast<VertexId>(out.size()); }
 
-    // Inserts arc from->to, or relaxes the existing one to the smaller weight. Keeps out[] and in[]
-    // in sync.
-    void add_or_relax(VertexId from, VertexId to, Weight weight);
+    // Inserts arc from->to with the given originals count, or relaxes the existing one if this weight
+    // is strictly smaller (keeps the winning arc's originals). Keeps out[] and in[] in sync.
+    void add_or_relax(VertexId from, VertexId to, Weight weight, uint32_t originals = 1);
 
     // Arcs whose endpoint has not yet been contracted (the only ones relevant to future shortcuts).
     [[nodiscard]] std::vector<WorkArc> uncontracted_in(VertexId v) const;

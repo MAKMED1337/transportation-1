@@ -1,0 +1,79 @@
+{
+  "algorithm": "arcflags",
+  "variant": "regions=32 partition=inertial threads=8",
+  "commit": "908634d",
+  "date": "2026-06-11T19:02:09",
+  "graph": {
+    "path": "data/graph/poland-driving.graph",
+    "source": "data/raw/poland-latest.osm.pbf",
+    "vertices": 17023522,
+    "directed_edges": 33605255
+  },
+  "load_wall_s": 1.221765354,
+  "load_cpu_s": 1.219019,
+  "after_load_peak_rss_mb": 649,
+  "preprocess_wall_s": 1207.520468422,
+  "preprocess_cpu_s": 9429.513244,
+  "after_preprocess_peak_rss_mb": 10309,
+  "region_count": 32,
+  "boundary_vertices": 15564,
+  "trees_computed": 15564,
+  "flags_mb": 256.3877487182617,
+  "flag_density": 0.55718674709506,
+  "partition_wall_s": 23.838719022,
+  "phast_wall_s": 1182.992278768,
+  "phast_cpu_s": 9405.055384,
+  "total_preprocess_wall_s": 1207.517195939,
+  "total_preprocess_cpu_s": 9429.509984,
+  "ch_was_injected": true,
+  "ch_loaded_from_file": "data/graph/poland.ch",
+  "queries": {
+    "count": 2000,
+    "seed": 1,
+    "mean_us": 127962.248276,
+    "p50_us": 126312.73,
+    "p95_us": 238352.015,
+    "p99_us": 284638.034,
+    "max_us": 341169.57
+  },
+  "query_stats": {
+    "settled_mean": 486435.526,
+    "settled_p50": 490921.0,
+    "settled_p95": 878315.0,
+    "relaxed_arcs_mean": 978477.8635,
+    "heap_pushes_mean": 490376.482,
+    "pruned_by_flag_mean": 121784.48345035105
+  },
+  "queries_by_distance": [
+    {
+      "bucket": "[0,10)km",
+      "count": 5,
+      "mean_us": 17276.8348,
+      "p50_us": 13036.75
+    },
+    {
+      "bucket": "[10,50)km",
+      "count": 67,
+      "mean_us": 42031.23134328358,
+      "p50_us": 36905.218
+    },
+    {
+      "bucket": "[50,200)km",
+      "count": 562,
+      "mean_us": 89176.21772064058,
+      "p50_us": 89621.474
+    },
+    {
+      "bucket": "[200,inf)km",
+      "count": 1366,
+      "mean_us": 148539.52087774524,
+      "p50_us": 146189.672
+    }
+  ],
+  "queries_by_distance_note": "buckets by straight-line haversine(s,t) as a cheap Dijkstra-rank proxy",
+  "validation": {
+    "reference": "dijkstra",
+    "count": 50,
+    "mismatches": 0
+  }
+}

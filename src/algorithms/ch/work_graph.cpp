@@ -9,7 +9,7 @@ size_t offset_index(uint64_t offset) { return static_cast<size_t>(offset); }
 
 } // namespace
 
-void WorkGraph::add_or_relax(VertexId from, VertexId to, Weight weight) {
+void WorkGraph::add_or_relax(VertexId from, VertexId to, Weight weight, uint32_t originals) {
     for (WorkArc &arc : out[from]) {
         if (arc.to != to) {
             continue;
@@ -19,17 +19,19 @@ void WorkGraph::add_or_relax(VertexId from, VertexId to, Weight weight) {
         }
 
         arc.weight = weight;
+        arc.originals = originals;
         for (WorkArc &reverse : in[to]) {
             if (reverse.to == from) {
                 reverse.weight = weight;
+                reverse.originals = originals;
                 return;
             }
         }
         return;
     }
 
-    out[from].push_back(WorkArc{to, weight});
-    in[to].push_back(WorkArc{from, weight});
+    out[from].push_back(WorkArc{to, weight, originals});
+    in[to].push_back(WorkArc{from, weight, originals});
 }
 
 std::vector<WorkArc> WorkGraph::uncontracted_in(VertexId v) const {
